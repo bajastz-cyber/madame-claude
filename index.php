@@ -1182,15 +1182,36 @@ function appendAiMsg(text, model, isErr = false) {
   const jsMatch   = text.match(/```javascript\n([\s\S]*?)```/);
 
   let downloadBtn = '';
+  let downloadCode_data = null;
+  let downloadCode_name = null;
+  let downloadCode_mime = null;
+
   if (htmlMatch) {
-    const code = htmlMatch[1];
-    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'site.html', 'text/html')">⬇️ Télécharger le fichier HTML</button>`;
+    downloadCode_data = htmlMatch[1];
+    downloadCode_name = 'site.html';
+    downloadCode_mime = 'text/html';
   } else if (cssMatch) {
-    const code = cssMatch[1];
-    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'style.css', 'text/css')">⬇️ Télécharger le CSS</button>`;
+    downloadCode_data = cssMatch[1];
+    downloadCode_name = 'style.css';
+    downloadCode_mime = 'text/css';
   } else if (jsMatch) {
-    const code = jsMatch[1];
-    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'script.js', 'text/javascript')">⬇️ Télécharger le JS</button>`;
+    downloadCode_data = jsMatch[1];
+    downloadCode_name = 'script.js';
+    downloadCode_mime = 'text/javascript';
+  }
+
+  if (downloadCode_data) {
+    const btnId = 'dl-' + Date.now();
+    downloadBtn = `<button class="download-btn" id="${btnId}">⬇️ Télécharger le fichier</button>`;
+    // On attache l'événement après insertion dans le DOM
+    setTimeout(() => {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.addEventListener('click', function() {
+          downloadCode(downloadCode_data, downloadCode_name, downloadCode_mime);
+        });
+      }
+    }, 100);
   }
 
   div.innerHTML = `
