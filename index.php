@@ -656,6 +656,60 @@ body {
   margin-top: 10px;
 }
 
+/* Upload & Download */
+.upload-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted2);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.upload-btn:hover { border-color: var(--accent); color: var(--accent2); background: rgba(124,106,245,.08); }
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(124,106,245,.1);
+  border: 1px solid rgba(124,106,245,.2);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--accent2);
+}
+.file-preview .remove-file {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  margin-left: auto;
+}
+.file-preview .remove-file:hover { color: var(--err); }
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity .2s;
+}
+.download-btn:hover { opacity: .85; }
+
 /* ============================================================
    MOBILE TOGGLE
    ============================================================ */
@@ -818,6 +872,10 @@ body {
       </div>
 
       <!-- Textarea + actions -->
+      <!-- File preview -->
+      <div id="file-preview-bar" style="display:none;margin-bottom:8px"></div>
+      <input type="file" id="file-input" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">
+
       <div class="input-box">
         <textarea
           id="msg-input"
@@ -828,6 +886,9 @@ body {
         ></textarea>
         <div class="input-actions">
           <div class="quick-btns">
+            <button class="upload-btn" onclick="document.getElementById('file-input').click()" title="Joindre un fichier">
+              📎 Joindre
+            </button>
             <button class="quick-btn" onclick="setPrompt('Explique en détail : ')">💡 Expliquer</button>
             <button class="quick-btn" onclick="setPrompt('Génère le code pour : ')">💻 Coder</button>
             <button class="quick-btn" onclick="setPrompt('Analyse ce texte : ')">🔍 Analyser</button>
@@ -852,6 +913,44 @@ body {
 let currentConvId = null;
 let isBusy = false;
 let isLoggedIn = <?= $user ? 'true' : 'false' ?>;
+
+// ============================================================
+// FILE UPLOAD
+// ============================================================
+let currentFile = null;
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const bar = document.getElementById('file-preview-bar');
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <div class="file-preview">
+      <span>${file.type.startsWith('image/') ? '🖼️' : '📄'} ${escHtml(file.name)}</span>
+      <span class="remove-file" onclick="removeFile()">×</span>
+    </div>
+  `;
+
+  // Lire le fichier
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result.split(',')[1];
+    currentFile = { name: file.name, mime: file.type, base64: base64 };
+  };
+  reader.readAsDataURL(file);
+
+  // Activer le bouton envoyer
+  document.getElementById('send-btn').disabled = false;
+}
+
+function removeFile() {
+  currentFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-preview-bar').style.display = 'none';
+  const inp = document.getElementById('msg-input');
+  document.getElementById('send-btn').disabled = inp.value.trim() === '';
+}
 
 // ============================================================
 // AUTO RESIZE TEXTAREA
@@ -993,8 +1092,8 @@ async function sendMessage() {
   // Hide welcome
   document.getElementById('welcome').style.display = 'none';
 
-  // Append user message
-  appendUserMsg(msg);
+  // Append user message (si pas de fichier joint, sinon déjà fait)
+  if (!currentFile) appendUserMsg(msg);
   input.value = '';
   input.style.height = 'auto';
 
@@ -1002,15 +1101,29 @@ async function sendMessage() {
   const thinkId = appendThinking();
   scrollBottom();
 
+  // Afficher le fichier joint dans la bulle utilisateur
+  if (currentFile) {
+    const fileInfo = currentFile;
+    appendUserMsg(msg, fileInfo);
+  }
+
   try {
+    const body = {
+      message: msg,
+      model: model,
+      conversation_id: currentConvId,
+    };
+    if (currentFile) {
+      body.file_base64 = currentFile.base64;
+      body.file_mime = currentFile.mime;
+      body.file_name = currentFile.name;
+      removeFile();
+    }
+
     const resp = await fetch('chat.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: msg,
-        model: model,
-        conversation_id: currentConvId,
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await resp.json();
@@ -1040,11 +1153,19 @@ async function sendMessage() {
 // ============================================================
 // RENDER HELPERS
 // ============================================================
-function appendUserMsg(text) {
+function appendUserMsg(text, file) {
   const list = document.getElementById('messages-list');
   const div  = document.createElement('div');
   div.className = 'msg msg-user';
-  div.innerHTML = `<div class="bubble">${escHtml(text)}</div>`;
+  let fileHtml = '';
+  if (file) {
+    if (file.mime.startsWith('image/')) {
+      fileHtml = `<img src="data:${file.mime};base64,${file.base64}" style="max-width:300px;max-height:200px;border-radius:8px;margin-bottom:8px;display:block">`;
+    } else {
+      fileHtml = `<div style="font-size:12px;opacity:.7;margin-bottom:6px">📄 ${escHtml(file.name)}</div>`;
+    }
+  }
+  div.innerHTML = `<div class="bubble">${fileHtml}${text ? escHtml(text) : ''}</div>`;
   list.appendChild(div);
 }
 
@@ -1055,6 +1176,23 @@ function appendAiMsg(text, model, isErr = false) {
 
   const modelShort = model ? model.split('-').slice(0,2).join('-') : 'voanh';
 
+  // Détecter si la réponse contient du HTML ou autre code téléchargeable
+  const htmlMatch = text.match(/```html\n([\s\S]*?)```/);
+  const cssMatch  = text.match(/```css\n([\s\S]*?)```/);
+  const jsMatch   = text.match(/```javascript\n([\s\S]*?)```/);
+
+  let downloadBtn = '';
+  if (htmlMatch) {
+    const code = htmlMatch[1];
+    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'site.html', 'text/html')">⬇️ Télécharger le fichier HTML</button>`;
+  } else if (cssMatch) {
+    const code = cssMatch[1];
+    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'style.css', 'text/css')">⬇️ Télécharger le CSS</button>`;
+  } else if (jsMatch) {
+    const code = jsMatch[1];
+    downloadBtn = `<button class="download-btn" onclick="downloadCode(${JSON.stringify(code)}, 'script.js', 'text/javascript')">⬇️ Télécharger le JS</button>`;
+  }
+
   div.innerHTML = `
     <div class="ai-avatar">✦</div>
     <div class="ai-body">
@@ -1063,9 +1201,20 @@ function appendAiMsg(text, model, isErr = false) {
         ${model ? `<span class="ai-model">${escHtml(modelShort)}</span>` : ''}
       </div>
       <div class="ai-content ${isErr ? 'err-content' : ''}">${renderMarkdown(text)}</div>
+      ${downloadBtn}
     </div>
   `;
   list.appendChild(div);
+}
+
+function downloadCode(code, filename, mime) {
+  const blob = new Blob([code], { type: mime + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function appendThinking() {

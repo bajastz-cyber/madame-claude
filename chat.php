@@ -28,11 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $raw   = file_get_contents('php://input');
 $input = json_decode($raw, true);
 
-$message  = trim($input['message'] ?? '');
-$model    = trim($input['model'] ?? MASTER_AGENT_MODEL);
-$convId   = isset($input['conversation_id']) ? (int)$input['conversation_id'] : null;
+$message    = trim($input['message'] ?? '');
+$model      = trim($input['model'] ?? MASTER_AGENT_MODEL);
+$convId     = isset($input['conversation_id']) ? (int)$input['conversation_id'] : null;
+$fileBase64 = $input['file_base64'] ?? null;
+$fileMime   = $input['file_mime'] ?? null;
+$fileName   = $input['file_name'] ?? null;
 
-if ($message === '') {
+if ($message === '' && !$fileBase64) {
     echo json_encode(['success' => false, 'error' => 'Message vide']);
     exit;
 }
@@ -86,7 +89,7 @@ try {
     // Système prompt
     $apiMessages[] = [
         'role'    => 'system',
-        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes.",
+        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement.",
     ];
 
     // Historique de la conversation (max 20 derniers messages)
@@ -108,7 +111,18 @@ try {
         }
     } else {
         // Sans compte, juste le message actuel
-        $apiMessages[] = ['role' => 'user', 'content' => $message];
+        if ($fileBase64 && strpos($fileMime, 'image/') === 0) {
+            $apiMessages[] = ['role' => 'user', 'content' => [
+                ['type' => 'text', 'text' => $message ?: 'Analyse cette image.'],
+                ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $fileMime . ';base64,' . $fileBase64]],
+            ]];
+        } else {
+            $userContent = $message;
+            if ($fileBase64 && $fileMime === 'application/pdf') {
+                $userContent = "Fichier PDF joint : $fileName\n\n" . $message;
+            }
+            $apiMessages[] = ['role' => 'user', 'content' => $userContent];
+        }
     }
 
     // Appel Mistral
