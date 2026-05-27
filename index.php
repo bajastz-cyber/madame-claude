@@ -328,39 +328,6 @@ Paramètres
 let currentConvId = null;
 let isBusy = false;
 let isLoggedIn = <?= $user ? 'true' : 'false' ?>;
-    // ── THÈMES ──
-function toggleLight() {
-    const body = document.body;
-    const btn = document.getElementById('light-toggle');
-    if (body.classList.contains('theme-light')) {
-        body.classList.remove('theme-light');
-        btn.textContent = '☀️ Clair';
-        localStorage.setItem('theme-light', '0');
-    } else {
-        body.classList.add('theme-light');
-        btn.textContent = '🌙 Sombre';
-        localStorage.setItem('theme-light', '1');
-    }
-}
-
-function setColor(color, el) {
-    document.body.classList.remove('theme-green','theme-pink','theme-orange');
-    if (color !== 'default') document.body.classList.add('theme-' + color);
-    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-    if (el) el.classList.add('active');
-    localStorage.setItem('theme-color', color);
-}
-
-// Restaurer le thème au chargement
-(function() {
-    if (localStorage.getItem('theme-light') === '1') {
-        document.body.classList.add('theme-light');
-        document.getElementById('light-toggle').textContent = '🌙 Sombre';
-    }
-    const color = localStorage.getItem('theme-color');
-    if (color && color !== 'default') document.body.classList.add('theme-' + color);
-})();
-let currentFile = null;
 
 function handleFileSelect(input) {
     const file = input.files[0];
