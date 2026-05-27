@@ -387,7 +387,8 @@ function escHtml(s) {
 }
 
 function renderMarkdown(text) {
-    return escHtml(text)
+    return text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => `<pre><code>${code.trim()}</code></pre>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -397,7 +398,7 @@ function renderMarkdown(text) {
         .replace(/^# (.+)$/gm, '<h1>$1</h1>')
         .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
         .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+        .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
         .replace(/\n/g, '<br>');
 }
 
