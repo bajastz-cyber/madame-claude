@@ -89,7 +89,7 @@ class Database {
         ";
         foreach (explode(';', $sql) as $q) {
             $q = trim($q);
-            if ($q) $this->pdo->exec($q);S
+            if ($q) $this->pdo->exec($q);
         }
     }
 
