@@ -46,7 +46,6 @@ if (!in_array($model, $allModels)) $model = MASTER_AGENT_MODEL;
 $visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
 $isVisionModel = in_array($model, $visionModels);
 
-// Fonction pour lire la mémoire utilisateur
 function getUserMemory($db, $userId) {
     if (!$userId) return '';
     $memories = $db->fetchAll(
@@ -61,35 +60,36 @@ function getUserMemory($db, $userId) {
     return implode("\n", $lines);
 }
 
-// Fonction pour extraire et sauvegarder les nouvelles infos mémorisables
-function extractAndSaveMemory($db, $userId, $message, $reply) {
+function extractAndSaveMemory($db, $userId, $message) {
     if (!$userId) return;
-    
-    // Patterns simples à détecter dans le message utilisateur
     $patterns = [
-        '/je m\'appelle ([A-Za-zÀ-ÿ\s]+)/i'        => 'prénom',
-        '/mon prénom est ([A-Za-zÀ-ÿ\s]+)/i'        => 'prénom',
-        '/j\'habite à ([A-Za-zÀ-ÿ\s\-]+)/i'         => 'ville',
-        '/je suis ([A-Za-zÀ-ÿ\s]+) de métier/i'     => 'métier',
-        '/je travaille comme ([A-Za-zÀ-ÿ\s]+)/i'    => 'métier',
-        '/j\'aime ([A-Za-zÀ-ÿ\s]+)/i'               => 'intérêt',
-        '/ma langue est ([A-Za-zÀ-ÿ\s]+)/i'         => 'langue',
-        '/je parle ([A-Za-zÀ-ÿ\s]+)/i'              => 'langue',
+        '/je m\'appelle ([A-Za-zÀ-ÿ\s]+)/i'     => 'prénom',
+        '/mon prénom est ([A-Za-zÀ-ÿ\s]+)/i'     => 'prénom',
+        '/j\'habite à ([A-Za-zÀ-ÿ\s\-]+)/i'      => 'ville',
+        '/je suis ([A-Za-zÀ-ÿ\s]+) de métier/i'  => 'métier',
+        '/je travaille comme ([A-Za-zÀ-ÿ\s]+)/i' => 'métier',
+        '/j\'aime ([A-Za-zÀ-ÿ\s]+)/i'            => 'intérêt',
+        '/je parle ([A-Za-zÀ-ÿ\s]+)/i'           => 'langue',
     ];
-
     foreach ($patterns as $pattern => $key) {
         if (preg_match($pattern, $message, $matches)) {
             $value = trim($matches[1]);
             if (strlen($value) > 1 && strlen($value) < 100) {
-             try {
-                    $existing = $db->fetch("SELECT id FROM user_memory WHERE user_id = ? AND memory_key = ?", [$userId, $key]);
-                    if ($existing) {
-                        $db->query("UPDATE user_memory SET memory_value = ?, updated_at = datetime('now') WHERE user_id = ? AND memory_key = ?", [$value, $userId, $key]);
-                    } else {
-                        $db->query("INSERT INTO user_memory (user_id, memory_key, memory_value) VALUES (?, ?, ?)", [$userId, $key, $value]);
-                    }
-                } catch(Exception $e) {}
+                $existing = $db->fetch(
+                    "SELECT id FROM user_memory WHERE user_id = ? AND memory_key = ?",
+                    [$userId, $key]
                 );
+                if ($existing) {
+                    $db->query(
+                        "UPDATE user_memory SET memory_value = ?, updated_at = datetime('now') WHERE user_id = ? AND memory_key = ?",
+                        [$value, $userId, $key]
+                    );
+                } else {
+                    $db->query(
+                        "INSERT INTO user_memory (user_id, memory_key, memory_value) VALUES (?, ?, ?)",
+                        [$userId, $key, $value]
+                    );
+                }
             }
         }
     }
@@ -124,12 +124,8 @@ try {
         ]);
     }
 
-    // Lire la mémoire utilisateur
-    $userMemory = getUserMemory($db, $userId);
-    $memoryBlock = '';
-    if ($userMemory) {
-        $memoryBlock = "\n\nCe que tu sais sur cet utilisateur (mémoire persistante) :\n" . $userMemory;
-    }
+    $userMemory  = getUserMemory($db, $userId);
+    $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
 
     $apiMessages = [];
     $apiMessages[] = [
@@ -177,12 +173,9 @@ try {
 
     if ($result['success']) {
         $reply = $result['content'];
-
-        // Extraire et sauvegarder les infos mémorisables
         if ($userId && $message) {
-            extractAndSaveMemory($db, $userId, $message, $reply);
+            extractAndSaveMemory($db, $userId, $message);
         }
-
         if ($convId) {
             $db->insert('messages', [
                 'conversation_id' => $convId,
@@ -193,7 +186,6 @@ try {
             ]);
             $db->update('conversations', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$convId]);
         }
-
         echo json_encode([
             'success'         => true,
             'content'         => $reply,
