@@ -1,6 +1,6 @@
 <?php
 /**
- * VoAnh - API Chat avec mémoire + recherche web DuckDuckGo
+ * VoAnh - API Chat avec mémoire + recherche web + génération d'images
  */
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
@@ -46,7 +46,30 @@ if (!in_array($model, $allModels)) $model = MASTER_AGENT_MODEL;
 $visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
 $isVisionModel = in_array($model, $visionModels);
 
-// ── RECHERCHE WEB DUCKDUCKGO ──
+// ── GÉNÉRATION D'IMAGES ──
+function isImageRequest($message) {
+    $keywords = [
+        'génère une image', 'générer une image', 'crée une image', 'créer une image',
+        'dessine', 'dessiner', 'génère moi', 'montre moi une image', 'fais moi une image',
+        'génère un dessin', 'créer un dessin', 'illustration de', 'image de',
+        'photo de', 'génère une photo', 'visualise', 'représente',
+    ];
+    $msg = mb_strtolower($message);
+    foreach ($keywords as $kw) {
+        if (strpos($msg, $kw) !== false) return true;
+    }
+    return false;
+}
+
+function generateImage($prompt) {
+    // Traduire le prompt en anglais via Mistral serait idéal,
+    // mais on utilise le prompt directement — Pollinations supporte le français
+    $encodedPrompt = urlencode($prompt);
+    $imageUrl = 'https://image.pollinations.ai/prompt/' . $encodedPrompt . '?width=800&height=600&nologo=true';
+    return $imageUrl;
+}
+
+// ── RECHERCHE WEB ──
 function searchWeb($query) {
     $url = 'https://api.duckduckgo.com/?q=' . urlencode($query) . '&format=json&no_html=1&skip_disambig=1';
     $ch = curl_init($url);
@@ -62,14 +85,10 @@ function searchWeb($query) {
     $data = json_decode($response, true);
     if (!$data) return '';
     $results = [];
-    if (!empty($data['AbstractText'])) {
-        $results[] = $data['AbstractText'];
-    }
+    if (!empty($data['AbstractText'])) $results[] = $data['AbstractText'];
     if (!empty($data['RelatedTopics'])) {
         foreach (array_slice($data['RelatedTopics'], 0, 3) as $topic) {
-            if (!empty($topic['Text'])) {
-                $results[] = $topic['Text'];
-            }
+            if (!empty($topic['Text'])) $results[] = $topic['Text'];
         }
     }
     return implode("\n", $results);
@@ -77,10 +96,9 @@ function searchWeb($query) {
 
 function needsWebSearch($message) {
     $keywords = [
-        'actualité', 'news', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
-        'prix', 'météo', 'temps', 'résultat', 'match', 'score', 'élection',
-        'qui est', 'c\'est quoi', 'qu\'est-ce que', 'quand', 'où se trouve',
-        'comment aller', 'horaire', 'ouvert', 'fermé', '2024', '2025', '2026',
+        'actualité', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
+        'prix', 'météo', 'résultat', 'match', 'score', 'élection',
+        'qui est', 'c\'est quoi', 'quand', 'où se trouve', '2025', '2026',
     ];
     $msg = mb_strtolower($message);
     foreach ($keywords as $kw) {
@@ -98,9 +116,7 @@ function getUserMemory($db, $userId) {
     );
     if (!$memories) return '';
     $lines = [];
-    foreach ($memories as $m) {
-        $lines[] = '- ' . $m['memory_key'] . ' : ' . $m['memory_value'];
-    }
+    foreach ($memories as $m) $lines[] = '- ' . $m['memory_key'] . ' : ' . $m['memory_value'];
     return implode("\n", $lines);
 }
 
@@ -168,23 +184,47 @@ try {
         ]);
     }
 
+    // ── GÉNÉRATION D'IMAGE ──
+    if ($message && isImageRequest($message)) {
+        $imageUrl = generateImage($message);
+        $reply = "![Image générée]($imageUrl)";
+
+        if ($convId) {
+            $db->insert('messages', [
+                'conversation_id' => $convId,
+                'role'        => 'assistant',
+                'content'     => $reply,
+                'model_used'  => $model,
+                'tokens_used' => 0,
+            ]);
+            $db->update('conversations', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$convId]);
+        }
+
+        echo json_encode([
+            'success'         => true,
+            'content'         => $reply,
+            'image_url'       => $imageUrl,
+            'model'           => $model,
+            'conversation_id' => $convId,
+        ]);
+        exit;
+    }
+
     // Mémoire utilisateur
     $userMemory  = getUserMemory($db, $userId);
     $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
 
-    // Recherche web si nécessaire
+    // Recherche web
     $webBlock = '';
     if ($message && needsWebSearch($message)) {
         $webResults = searchWeb($message);
-        if ($webResults) {
-            $webBlock = "\n\nRésultats de recherche web récents :\n" . $webResults;
-        }
+        if ($webResults) $webBlock = "\n\nRésultats web :\n" . $webResults;
     }
 
     $apiMessages = [];
     $apiMessages[] = [
         'role'    => 'system',
-        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement." . $memoryBlock . $webBlock,
+        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin." . $memoryBlock . $webBlock,
     ];
 
     if ($convId) {
@@ -227,9 +267,7 @@ try {
 
     if ($result['success']) {
         $reply = $result['content'];
-        if ($userId && $message) {
-            extractAndSaveMemory($db, $userId, $message);
-        }
+        if ($userId && $message) extractAndSaveMemory($db, $userId, $message);
         if ($convId) {
             $db->insert('messages', [
                 'conversation_id' => $convId,
