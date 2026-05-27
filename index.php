@@ -102,16 +102,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .ai-name{font-size:13px;font-weight:500;color:var(--accent2)}
 .ai-model{font-size:11px;color:var(--muted);background:rgba(124,106,245,.1);border:1px solid rgba(124,106,245,.2);border-radius:99px;padding:2px 8px;font-family:monospace}
 .ai-content{font-size:15px;line-height:1.75;color:var(--text);word-wrap:break-word}
-.ai-content pre{background:#0d0d1a;border:1px solid var(--border2);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;font-size:13px;line-height:1.6;position:relative}
-.ai-content code{font-family:'SF Mono','Fira Code','Cascadia Code',monospace;font-size:13px;color:#c9d1d9}
+.ai-content pre{background:#0d0d1a;border:1px solid var(--border2);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;font-size:13px;line-height:1.6}
+.ai-content code{font-family:'SF Mono','Fira Code',monospace;font-size:13px;color:#c9d1d9}
 .ai-content p code{background:rgba(124,106,245,.12);border:1px solid rgba(124,106,245,.2);border-radius:4px;padding:1px 6px;font-size:13px;color:var(--accent3)}
 .ai-content p{margin-bottom:10px}
 .ai-content ul,.ai-content ol{margin:8px 0 8px 20px}
 .ai-content li{margin-bottom:4px}
 .ai-content h1,.ai-content h2,.ai-content h3{margin:16px 0 8px;font-weight:600}
-.ai-content h1{font-size:20px}
-.ai-content h2{font-size:17px}
-.ai-content h3{font-size:15px}
+.ai-content h1{font-size:20px}.ai-content h2{font-size:17px}.ai-content h3{font-size:15px}
 .ai-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:12px 0;color:var(--muted2);font-style:italic}
 .ai-content strong{color:var(--accent3);font-weight:500}
 .ai-content table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px}
@@ -150,6 +148,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .download-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
 .download-btn:hover{opacity:.85}
 .sidebar-toggle{display:none;position:fixed;top:14px;left:14px;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;cursor:pointer;color:var(--muted2)}
+.theme-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--border);flex-wrap:wrap}
+.theme-btn{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .2s,border-color .2s;flex-shrink:0}
+.theme-btn:hover{transform:scale(1.2)}
+.theme-btn.active{border-color:var(--text)}
+.theme-toggle{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:all .2s}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent2)}
+body.theme-light{--bg:#f5f4f0;--sidebar:#ffffff;--card:#ffffff;--surface:#f0ede8;--border:#e0dcd5;--border2:#ccc8c0;--text:#1a1a2e;--muted:#9896a8;--muted2:#6b697e;--user-bg:#e8e6f5;--user-border:#c4b5fd}
+body.theme-green{--accent:#22c55e;--accent2:#4ade80;--accent3:#86efac}
+body.theme-pink{--accent:#ec4899;--accent2:#f472b6;--accent3:#f9a8d4}
+body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fdba74}
 @media(max-width:768px){
 .sidebar{position:fixed;transform:translateX(-100%);z-index:50}
 .sidebar.open{transform:translateX(0)}
@@ -159,39 +167,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .messages-inner{padding:60px 14px 20px}
 .input-wrap{padding:10px 14px 16px}
 .model-select{max-width:220px}
-}/* ── THÈMES ── */
-body.theme-light {
-    --bg:#f5f4f0;--sidebar:#ffffff;--card:#ffffff;--surface:#f0ede8;
-    --border:#e0dcd5;--border2:#ccc8c0;--text:#1a1a2e;--muted:#9896a8;
-    --muted2:#6b697e;--user-bg:#e8e6f5;--user-border:#c4b5fd;
 }
-body.theme-green {
-    --accent:#22c55e;--accent2:#4ade80;--accent3:#86efac;
-}
-body.theme-pink {
-    --accent:#ec4899;--accent2:#f472b6;--accent3:#f9a8d4;
-}
-body.theme-orange {
-    --accent:#f97316;--accent2:#fb923c;--accent3:#fdba74;
-}
-
-/* Bouton thème */
-.theme-bar {
-    display:flex;align-items:center;gap:6px;padding:8px 10px;
-    border-top:1px solid var(--border);flex-wrap:wrap;
-}
-.theme-btn {
-    width:22px;height:22px;border-radius:50%;border:2px solid transparent;
-    cursor:pointer;transition:transform .2s,border-color .2s;flex-shrink:0;
-}
-.theme-btn:hover{transform:scale(1.2)}
-.theme-btn.active{border-color:var(--text)}
-.theme-toggle {
-    background:none;border:1px solid var(--border);border-radius:var(--radius-sm);
-    color:var(--muted2);padding:4px 10px;cursor:pointer;font-size:12px;
-    font-family:'DM Sans',sans-serif;transition:all .2s;
-}
-.theme-toggle:hover{border-color:var(--accent);color:var(--accent2)}
 </style>
 </head>
 <body>
@@ -230,11 +206,15 @@ Nouvelle conversation
 <?php endif; ?>
 </div>
 <?php endif; ?>
-<div class="theme-bar">
-    <button class="theme-toggle" onclick="toggleLight()" id="light-toggle">☀️ Clair</button>
-  onclick="setColor('default')
-</div>
+
 <div class="sidebar-footer">
+<div class="theme-bar">
+<button class="theme-toggle" onclick="toggleLight()" id="light-toggle">☀️ Clair</button>
+<div class="theme-btn" style="background:#7c6af5" onclick="setColor('default',this)" title="Violet"></div>
+<div class="theme-btn" style="background:#22c55e" onclick="setColor('green',this)" title="Vert"></div>
+<div class="theme-btn" style="background:#ec4899" onclick="setColor('pink',this)" title="Rose"></div>
+<div class="theme-btn" style="background:#f97316" onclick="setColor('orange',this)" title="Orange"></div>
+</div>
 <a href="settings.php" class="nav-link">
 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
 Paramètres
@@ -260,22 +240,22 @@ Paramètres
 <h1>Bonjour<?= $user ? ', '.htmlspecialchars($user['username']) : '' ?></h1>
 <p class="welcome-sub">Comment puis-je vous aider aujourd'hui ?</p>
 <div class="starters">
-<div class="starter-card" onclick="setPrompt('Explique-moi comment fonctionne une architecture microservices et donne un exemple concret.')">
+<div class="starter-card" onclick="setPrompt('Explique-moi comment fonctionne une architecture microservices.')">
 <span class="starter-emoji">🏗️</span>
 <div class="starter-title">Expliquer un concept</div>
-<div class="starter-desc">Architecture microservices, patterns de conception…</div>
+<div class="starter-desc">Architecture, patterns de conception…</div>
 </div>
-<div class="starter-card" onclick="setPrompt('Écris un script Python pour analyser un fichier CSV et générer des statistiques descriptives.')">
+<div class="starter-card" onclick="setPrompt('Écris un script Python pour analyser un fichier CSV.')">
 <span class="starter-emoji">💻</span>
 <div class="starter-title">Générer du code</div>
 <div class="starter-desc">Python, JavaScript, PHP, SQL…</div>
 </div>
-<div class="starter-card" onclick="setPrompt('Rédige un email professionnel pour demander un report de deadline en restant positif et constructif.')">
+<div class="starter-card" onclick="setPrompt('Rédige un email professionnel pour demander un report de deadline.')">
 <span class="starter-emoji">✍️</span>
 <div class="starter-title">Rédiger un texte</div>
 <div class="starter-desc">Email, rapport, résumé, article…</div>
 </div>
-<div class="starter-card" onclick="setPrompt('Décompose ce projet en sous-tâches et crée un plan de développement structuré : Créer une application de gestion de bibliothèque.')">
+<div class="starter-card" onclick="setPrompt('Planifie et décompose ce projet : Créer une application de gestion.')">
 <span class="starter-emoji">📋</span>
 <div class="starter-title">Planifier un projet</div>
 <div class="starter-desc">Roadmap, sprints, architecture…</div>
@@ -327,7 +307,29 @@ Paramètres
 <script>
 let currentConvId = null;
 let isBusy = false;
-let isLoggedIn = <?= $user ? 'true' : 'false' ?>;
+let currentFile = null;
+
+function toggleLight() {
+    const body = document.body;
+    const btn = document.getElementById('light-toggle');
+    if (body.classList.contains('theme-light')) {
+        body.classList.remove('theme-light');
+        btn.textContent = '☀️ Clair';
+        localStorage.setItem('voanh-light', '0');
+    } else {
+        body.classList.add('theme-light');
+        btn.textContent = '🌙 Sombre';
+        localStorage.setItem('voanh-light', '1');
+    }
+}
+
+function setColor(color, el) {
+    document.body.classList.remove('theme-green','theme-pink','theme-orange');
+    if (color !== 'default') document.body.classList.add('theme-' + color);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+    localStorage.setItem('voanh-color', color);
+}
 
 function handleFileSelect(input) {
     const file = input.files[0];
@@ -337,8 +339,7 @@ function handleFileSelect(input) {
     bar.innerHTML = `<div class="file-preview"><span>${file.type.startsWith('image/') ? '🖼️' : '📄'} ${escHtml(file.name)}</span><span class="remove-file" onclick="removeFile()">×</span></div>`;
     const reader = new FileReader();
     reader.onload = e => {
-        const base64 = e.target.result.split(',')[1];
-        currentFile = { name: file.name, mime: file.type, base64: base64 };
+        currentFile = { name: file.name, mime: file.type, base64: e.target.result.split(',')[1] };
     };
     reader.readAsDataURL(file);
     document.getElementById('send-btn').disabled = false;
@@ -348,8 +349,7 @@ function removeFile() {
     currentFile = null;
     document.getElementById('file-input').value = '';
     document.getElementById('file-preview-bar').style.display = 'none';
-    const inp = document.getElementById('msg-input');
-    document.getElementById('send-btn').disabled = inp.value.trim() === '';
+    document.getElementById('send-btn').disabled = document.getElementById('msg-input').value.trim() === '';
 }
 
 function autoResize(el) {
@@ -376,7 +376,6 @@ function filterConvs(q) {
 function setPrompt(text) {
     const el = document.getElementById('msg-input');
     el.value = text; el.focus(); autoResize(el);
-    el.setSelectionRange(text.length, text.length);
 }
 
 function handleKey(e) {
@@ -384,13 +383,12 @@ function handleKey(e) {
 }
 
 function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function renderMarkdown(text) {
-    return text
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-        .replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => `<pre><code class="lang-${lang}">${code.trim()}</code></pre>`)
+    return escHtml(text)
+        .replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => `<pre><code>${code.trim()}</code></pre>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         .replace(/\*([^*]+)\*/g, '<em>$1</em>')
@@ -398,11 +396,8 @@ function renderMarkdown(text) {
         .replace(/^## (.+)$/gm, '<h2>$1</h2>')
         .replace(/^# (.+)$/gm, '<h1>$1</h1>')
         .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
-        .replace(/^\* (.+)$/gm, '<li>$1</li>')
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/^(?!<[hupbl])(.+)$/gm, '$1')
+        .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
         .replace(/\n/g, '<br>');
 }
 
@@ -421,17 +416,7 @@ function addAiMessage(model) {
     const div = document.createElement('div');
     div.className = 'msg msg-ai';
     const id = 'ai-' + Date.now();
-    div.innerHTML = `
-        <div class="ai-avatar">✦</div>
-        <div class="ai-body">
-            <div class="ai-meta">
-                <span class="ai-name">VoAnh</span>
-                <span class="ai-model">${escHtml(model)}</span>
-            </div>
-            <div class="ai-content" id="${id}">
-                <div class="thinking"><span></span><span></span><span></span></div>
-            </div>
-        </div>`;
+    div.innerHTML = `<div class="ai-avatar">✦</div><div class="ai-body"><div class="ai-meta"><span class="ai-name">VoAnh</span><span class="ai-model">${escHtml(model)}</span></div><div class="ai-content" id="${id}"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;
     list.appendChild(div);
     scrollBottom();
     return id;
@@ -514,7 +499,6 @@ function downloadCode(content, filename, mime) {
     URL.revokeObjectURL(url);
 }
 
-// ── SEND MESSAGE AVEC STREAMING ──
 async function sendMessage() {
     if (isBusy) return;
     const inp   = document.getElementById('msg-input');
@@ -530,7 +514,7 @@ async function sendMessage() {
     const aiId = addAiMessage(model);
     const aiEl = document.getElementById(aiId);
 
-    const payload = { message: text, model, conversation_id: currentConvId, stream: true };
+    const payload = { message: text, model, conversation_id: currentConvId };
     if (currentFile) {
         payload.file_base64 = currentFile.base64;
         payload.file_mime   = currentFile.mime;
@@ -539,48 +523,38 @@ async function sendMessage() {
     removeFile();
 
     try {
-        const response = await fetch('chat.php', {
+        const r = await fetch('chat.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let fullText = '';
-
-        aiEl.innerHTML = '';
-
-        while (true) {
-            const {done, value} = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, {stream: true});
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed.startsWith('data: ')) continue;
-                const json = JSON.parse(trimmed.slice(6));
-                if (json.delta) {
-                    fullText += json.delta;
-                    aiEl.innerHTML = renderMarkdown(fullText);
-                    scrollBottom();
-                }
-                if (json.done) {
-                    currentConvId = json.conversation_id || currentConvId;
-                    addDownloadButtons(aiEl, fullText);
-                }
-            }
+        const data = await r.json();
+        if (data.success) {
+            currentConvId = data.conversation_id || currentConvId;
+            aiEl.innerHTML = renderMarkdown(data.content);
+            addDownloadButtons(aiEl, data.content);
+        } else {
+            aiEl.innerHTML = `<span style="color:var(--err)">⚠️ ${escHtml(data.error || 'Erreur')}</span>`;
         }
     } catch(e) {
-        aiEl.innerHTML = '<span style="color:var(--err)">Erreur de connexion.</span>';
+        aiEl.innerHTML = `<span style="color:var(--err)">⚠️ Erreur de connexion : ${escHtml(e.message)}</span>`;
     }
 
     isBusy = false;
     document.getElementById('send-btn').disabled = false;
     inp.focus();
+    scrollBottom();
 }
+
+// Restaurer thème
+window.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('voanh-light') === '1') {
+        document.body.classList.add('theme-light');
+        document.getElementById('light-toggle').textContent = '🌙 Sombre';
+    }
+    const color = localStorage.getItem('voanh-color');
+    if (color && color !== 'default') document.body.classList.add('theme-' + color);
+});
 </script>
 </body>
 </html>
