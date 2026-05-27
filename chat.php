@@ -3,7 +3,6 @@
  * VoAnh - API Chat (Hostinger compatible)
  * Endpoint: /chat.php (POST JSON)
  */
-
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
 require_once dirname(__FILE__) . '/auth.php';
@@ -12,7 +11,6 @@ require_once dirname(__FILE__) . '/mistral.php';
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
-// CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Methods: POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
@@ -25,15 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$raw   = file_get_contents('php://input');
+$raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
 
 $message    = trim($input['message'] ?? '');
 $model      = trim($input['model'] ?? MASTER_AGENT_MODEL);
 $convId     = isset($input['conversation_id']) ? (int)$input['conversation_id'] : null;
 $fileBase64 = $input['file_base64'] ?? null;
-$fileMime   = $input['file_mime'] ?? null;
-$fileName   = $input['file_name'] ?? null;
+$fileMime   = $input['file_mime']   ?? null;
+$fileName   = $input['file_name']   ?? null;
 
 if ($message === '' && !$fileBase64) {
     echo json_encode(['success' => false, 'error' => 'Message vide']);
@@ -51,6 +49,10 @@ if (!in_array($model, $allModels)) {
     $model = MASTER_AGENT_MODEL;
 }
 
+// Modèles vision supportés
+$visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
+$isVisionModel = in_array($model, $visionModels);
+
 try {
     $auth   = new Auth();
     $user   = $auth->getCurrentUser();
@@ -64,11 +66,10 @@ try {
     if (!$convId && $userId) {
         $convId = $db->insert('conversations', [
             'user_id'    => $userId,
-            'title'      => mb_substr($message, 0, 60),
+            'title'      => mb_substr($message ?: ($fileName ?? 'Image'), 0, 60),
             'model_used' => $model,
         ]);
     } elseif ($convId && $userId) {
-        // Vérifier que la conversation appartient à l'utilisateur
         $conv = $db->fetch("SELECT id FROM conversations WHERE id = ? AND user_id = ?", [$convId, $userId]);
         if (!$conv) $convId = null;
     }
@@ -77,52 +78,53 @@ try {
     if ($convId) {
         $db->insert('messages', [
             'conversation_id' => $convId,
-            'role'            => 'user',
-            'content'         => $message,
-            'model_used'      => $model,
+            'role'       => 'user',
+            'content'    => $message,
+            'model_used' => $model,
         ]);
     }
 
     // Construire les messages pour l'API
     $apiMessages = [];
 
-    // Système prompt
     $apiMessages[] = [
         'role'    => 'system',
         'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement.",
     ];
 
-    // Historique de la conversation (max 20 derniers messages)
+    // Historique (max 20 messages)
     if ($convId) {
         $history = $db->fetchAll(
-            "SELECT role, content FROM messages 
-             WHERE conversation_id = ? 
-             ORDER BY created_at DESC 
-             LIMIT 20",
+            "SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 20",
             [$convId]
         );
         foreach (array_reverse($history) as $msg) {
             if (in_array($msg['role'], ['user', 'assistant'])) {
-                $apiMessages[] = [
-                    'role'    => $msg['role'],
-                    'content' => $msg['content'],
-                ];
+                $apiMessages[] = ['role' => $msg['role'], 'content' => $msg['content']];
             }
         }
-    } else {
-        // Sans compte, juste le message actuel
-        if ($fileBase64 && strpos($fileMime, 'image/') === 0) {
-            $apiMessages[] = ['role' => 'user', 'content' => [
-                ['type' => 'text', 'text' => $message ?: 'Analyse cette image.'],
-                ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $fileMime . ';base64,' . $fileBase64]],
-            ]];
+    }
+
+    // Message courant — avec image si fournie
+    if ($fileBase64 && strpos($fileMime, 'image/') === 0) {
+        if ($isVisionModel) {
+            $apiMessages[] = [
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'text',      'text'      => $message ?: 'Analyse cette image.'],
+                    ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $fileMime . ';base64,' . $fileBase64]],
+                ],
+            ];
         } else {
-            $userContent = $message;
-            if ($fileBase64 && $fileMime === 'application/pdf') {
-                $userContent = "Fichier PDF joint : $fileName\n\n" . $message;
-            }
-            $apiMessages[] = ['role' => 'user', 'content' => $userContent];
+            $apiMessages[] = [
+                'role'    => 'user',
+                'content' => ($message ?: 'Analyse cette image.') . "\n\n⚠️ Le modèle sélectionné ne supporte pas la vision. Sélectionne \"Vision Analyzer Max\" ou \"Vision Analyzer Light\" pour analyser des images.",
+            ];
         }
+    } elseif ($fileBase64 && $fileMime === 'application/pdf') {
+        $apiMessages[] = ['role' => 'user', 'content' => "Fichier PDF joint : $fileName\n\n" . $message];
+    } else {
+        $apiMessages[] = ['role' => 'user', 'content' => $message];
     }
 
     // Appel Mistral
@@ -134,17 +136,14 @@ try {
     if ($result['success']) {
         $reply = $result['content'];
 
-        // Sauvegarder la réponse
         if ($convId) {
             $db->insert('messages', [
                 'conversation_id' => $convId,
-                'role'            => 'assistant',
-                'content'         => $reply,
-                'model_used'      => $model,
-                'tokens_used'     => $result['usage']['total_tokens'] ?? 0,
+                'role'        => 'assistant',
+                'content'     => $reply,
+                'model_used'  => $model,
+                'tokens_used' => $result['usage']['total_tokens'] ?? 0,
             ]);
-
-            // Mettre à jour le timestamp de la conversation
             $db->update('conversations', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$convId]);
         }
 
@@ -157,10 +156,7 @@ try {
         ]);
     } else {
         voanh_log("Chat error for user $userId: " . $result['error'], 2);
-        echo json_encode([
-            'success' => false,
-            'error'   => $result['error'] ?? 'Erreur de l\'API Mistral',
-        ]);
+        echo json_encode(['success' => false, 'error' => $result['error'] ?? "Erreur de l'API Mistral"]);
     }
 
 } catch (Exception $e) {
