@@ -81,11 +81,13 @@ function extractAndSaveMemory($db, $userId, $message, $reply) {
         if (preg_match($pattern, $message, $matches)) {
             $value = trim($matches[1]);
             if (strlen($value) > 1 && strlen($value) < 100) {
-                $db->query(
-                    "INSERT INTO user_memory (user_id, memory_key, memory_value, updated_at)
-                     VALUES (?, ?, ?, datetime('now'))
-                     ON CONFLICT(user_id, memory_key) DO UPDATE SET memory_value = excluded.memory_value, updated_at = excluded.updated_at",
-                    [$userId, $key, $value]
+              try {
+                    $db->query(
+                        "INSERT OR REPLACE INTO user_memory (user_id, memory_key, memory_value, updated_at)
+                         VALUES (?, ?, ?, datetime('now'))",
+                        [$userId, $key, $value]
+                    );
+                } catch(Exception $e) {}
                 );
             }
         }
