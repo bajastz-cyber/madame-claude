@@ -1,6 +1,6 @@
 <?php
 /**
- * VoAnh - API Chat avec mémoire utilisateur
+ * VoAnh - API Chat avec mémoire + recherche web DuckDuckGo
  */
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
@@ -46,6 +46,50 @@ if (!in_array($model, $allModels)) $model = MASTER_AGENT_MODEL;
 $visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
 $isVisionModel = in_array($model, $visionModels);
 
+// ── RECHERCHE WEB DUCKDUCKGO ──
+function searchWeb($query) {
+    $url = 'https://api.duckduckgo.com/?q=' . urlencode($query) . '&format=json&no_html=1&skip_disambig=1';
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 8,
+        CURLOPT_USERAGENT      => 'VoAnh/1.0',
+        CURLOPT_FOLLOWLOCATION => true,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    if (!$response) return '';
+    $data = json_decode($response, true);
+    if (!$data) return '';
+    $results = [];
+    if (!empty($data['AbstractText'])) {
+        $results[] = $data['AbstractText'];
+    }
+    if (!empty($data['RelatedTopics'])) {
+        foreach (array_slice($data['RelatedTopics'], 0, 3) as $topic) {
+            if (!empty($topic['Text'])) {
+                $results[] = $topic['Text'];
+            }
+        }
+    }
+    return implode("\n", $results);
+}
+
+function needsWebSearch($message) {
+    $keywords = [
+        'actualité', 'news', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
+        'prix', 'météo', 'temps', 'résultat', 'match', 'score', 'élection',
+        'qui est', 'c\'est quoi', 'qu\'est-ce que', 'quand', 'où se trouve',
+        'comment aller', 'horaire', 'ouvert', 'fermé', '2024', '2025', '2026',
+    ];
+    $msg = mb_strtolower($message);
+    foreach ($keywords as $kw) {
+        if (strpos($msg, $kw) !== false) return true;
+    }
+    return false;
+}
+
+// ── MÉMOIRE UTILISATEUR ──
 function getUserMemory($db, $userId) {
     if (!$userId) return '';
     $memories = $db->fetchAll(
@@ -124,13 +168,23 @@ try {
         ]);
     }
 
+    // Mémoire utilisateur
     $userMemory  = getUserMemory($db, $userId);
     $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
+
+    // Recherche web si nécessaire
+    $webBlock = '';
+    if ($message && needsWebSearch($message)) {
+        $webResults = searchWeb($message);
+        if ($webResults) {
+            $webBlock = "\n\nRésultats de recherche web récents :\n" . $webResults;
+        }
+    }
 
     $apiMessages = [];
     $apiMessages[] = [
         'role'    => 'system',
-        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement." . $memoryBlock,
+        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement." . $memoryBlock . $webBlock,
     ];
 
     if ($convId) {
