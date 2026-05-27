@@ -159,7 +159,39 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .messages-inner{padding:60px 14px 20px}
 .input-wrap{padding:10px 14px 16px}
 .model-select{max-width:220px}
+}/* ── THÈMES ── */
+body.theme-light {
+    --bg:#f5f4f0;--sidebar:#ffffff;--card:#ffffff;--surface:#f0ede8;
+    --border:#e0dcd5;--border2:#ccc8c0;--text:#1a1a2e;--muted:#9896a8;
+    --muted2:#6b697e;--user-bg:#e8e6f5;--user-border:#c4b5fd;
 }
+body.theme-green {
+    --accent:#22c55e;--accent2:#4ade80;--accent3:#86efac;
+}
+body.theme-pink {
+    --accent:#ec4899;--accent2:#f472b6;--accent3:#f9a8d4;
+}
+body.theme-orange {
+    --accent:#f97316;--accent2:#fb923c;--accent3:#fdba74;
+}
+
+/* Bouton thème */
+.theme-bar {
+    display:flex;align-items:center;gap:6px;padding:8px 10px;
+    border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.theme-btn {
+    width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+    cursor:pointer;transition:transform .2s,border-color .2s;flex-shrink:0;
+}
+.theme-btn:hover{transform:scale(1.2)}
+.theme-btn.active{border-color:var(--text)}
+.theme-toggle {
+    background:none;border:1px solid var(--border);border-radius:var(--radius-sm);
+    color:var(--muted2);padding:4px 10px;cursor:pointer;font-size:12px;
+    font-family:'DM Sans',sans-serif;transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent2)}
 </style>
 </head>
 <body>
