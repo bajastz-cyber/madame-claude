@@ -389,6 +389,7 @@ function escHtml(s) {
 function renderMarkdown(text) {
     return text
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/!\[([^\]]*)\]\((https?:\/\/[^\)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:10px;margin:10px 0">')
         .replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => `<pre><code>${code.trim()}</code></pre>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -401,7 +402,6 @@ function renderMarkdown(text) {
         .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
         .replace(/\n/g, '<br>');
 }
-
 function addUserMessage(text) {
     document.getElementById('welcome').style.display = 'none';
     const list = document.getElementById('messages-list');
