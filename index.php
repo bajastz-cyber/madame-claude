@@ -232,10 +232,7 @@ Nouvelle conversation
 <?php endif; ?>
 <div class="theme-bar">
     <button class="theme-toggle" onclick="toggleLight()" id="light-toggle">☀️ Clair</button>
-    <div class="theme-btn" style="background:#7c6af5" onclick="setColor('default')" title="Violet"></div>
-    <div class="theme-btn" style="background:#22c55e" onclick="setColor('green')" title="Vert"></div>
-    <div class="theme-btn" style="background:#ec4899" onclick="setColor('pink')" title="Rose"></div>
-    <div class="theme-btn" style="background:#f97316" onclick="setColor('orange')" title="Orange"></div>
+  onclick="setColor('default')
 </div>
 <div class="sidebar-footer">
 <a href="settings.php" class="nav-link">
