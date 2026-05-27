@@ -77,11 +77,19 @@ class Database {
         );
         CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
         CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
-        CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
+        CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);CREATE TABLE IF NOT EXISTS user_memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                memory_key TEXT NOT NULL,
+                memory_value TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(user_id, memory_key)
+            );
         ";
         foreach (explode(';', $sql) as $q) {
             $q = trim($q);
-            if ($q) $this->pdo->exec($q);
+            if ($q) $this->pdo->exec($q);S
         }
     }
 
