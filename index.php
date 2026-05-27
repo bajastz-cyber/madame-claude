@@ -346,11 +346,11 @@ function toggleLight() {
     }
 }
 
-function setColor(color) {
+function setColor(color, el) {
     document.body.classList.remove('theme-green','theme-pink','theme-orange');
     if (color !== 'default') document.body.classList.add('theme-' + color);
     document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    if (el) el.classList.add('active');
     localStorage.setItem('theme-color', color);
 }
 
