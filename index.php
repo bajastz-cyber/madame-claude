@@ -301,7 +301,8 @@ Paramètres
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <span style="font-size:13px;color:var(--muted2)">🎵</span>
         <span id="mp3-title" style="font-size:13px;color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aucun fichier sélectionné</span>
-        <button onclick="document.getElementById('mp3-input').click()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">📂 Ouvrir</button>
+        <button onclick="document.getElementById('mp3-input').click()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">📂 Fichier</button>
+<button onclick="loadMp3Url()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">🌐 URL</button>
         <input type="file" id="mp3-input" accept="audio/*" style="display:none" onchange="loadMp3(this)">
     </div>
     <audio id="mp3-audio" style="width:100%;height:32px" controls></audio>
