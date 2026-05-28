@@ -279,7 +279,9 @@ Paramètres
 <button class="upload-btn" id="emoji-btn" onclick="toggleEmoji()" title="Émojis">😊 Émojis</button>
 <div id="emoji-panel" style="display:none;position:absolute;bottom:80px;left:20px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:10px;z-index:100;width:280px;max-height:200px;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.3)">
 <div style="display:flex;flex-wrap:wrap;gap:4px">
-😊 😂 🥰 😎 🤔 😅 🙏 👍 👎 ❤️ 🔥 ✅ ⚠️ 🎉 🚀 💡 💻 📋 📎 🔍 🌍 🎨 🐕 🐾 🌲 ☀️ 🌙 ⭐ 💪 👏 🤝 😴 🍕 🎵 📱 💬 🔑 🏠 🚗 ✈️ 🌺 🦋 🐶 🐱 🐴
+<?php foreach(['😊','😂','🥰','😎','🤔','😅','🙏','👍','👎','❤️','🔥','✅','⚠️','🎉','🚀','💡','💻','📋','📎','🔍','🌍','🎨','🐕','🐾','🌲','☀️','🌙','⭐','💪','👏','🤝','😴','🍕','🎵','📱','💬','🔑','🏠','🚗','✈️','🌺','🦋','🐶','🐱','🐴'] as $e): ?>
+<span onclick="insertEmoji('<?= $e ?>')" style="font-size:22px;cursor:pointer;padding:2px;border-radius:4px;display:inline-block" title="<?= $e ?>"><?= $e ?></span>
+<?php endforeach; ?>
 </div>
 </div>
 <button class="upload-btn" id="mic-btn" onclick="toggleMic()" title="Parler">🎤 Micro</button>
