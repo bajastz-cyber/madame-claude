@@ -328,8 +328,13 @@ function handleFileSelect(input) {
     reader.onload = e => { currentFile = {name:file.name, mime:file.type, base64:e.target.result.split(',')[1]}; };
     reader.readAsDataURL(file);
     document.getElementById('send-btn').disabled = false;
+    // Basculer automatiquement sur Vision si c'est une image
+    if (file.type.startsWith('image/')) {
+        const select = document.getElementById('model-select');
+        const visionOption = select.querySelector('option[value="pixtral-large-2411"]');
+        if (visionOption) select.value = 'pixtral-large-2411';
+    }
 }
-
 function removeFile() {
     currentFile = null;
     document.getElementById('file-input').value = '';
