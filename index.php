@@ -354,7 +354,31 @@ function toggleMic() {
     };
 
     recognition.start();
+}// ── ÉMOJIS ──
+function toggleEmoji() {
+    const panel = document.getElementById('emoji-panel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
+
+function insertEmoji(emoji) {
+    const inp = document.getElementById('msg-input');
+    const pos = inp.selectionStart;
+    inp.value = inp.value.slice(0, pos) + emoji + inp.value.slice(pos);
+    inp.selectionStart = inp.selectionEnd = pos + emoji.length;
+    inp.focus();
+    autoResize(inp);
+    document.getElementById('send-btn').disabled = inp.value.trim() === '';
+    document.getElementById('emoji-panel').style.display = 'none';
+}
+
+// Fermer le panneau si on clique ailleurs
+document.addEventListener('click', function(e) {
+    const panel = document.getElementById('emoji-panel');
+    const btn = document.getElementById('emoji-btn');
+    if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+        panel.style.display = 'none';
+    }
+});
 function toggleLight() {
     const body = document.body;
     const btn = document.getElementById('light-toggle');
