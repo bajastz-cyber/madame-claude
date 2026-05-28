@@ -160,7 +160,49 @@ try {
         ]);
         exit;
     }
+// ── RECHERCHE WEB SERPER ──
+function searchWebSerper($query, $apiKey) {
+    $ch = curl_init('https://google.serper.dev/search');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => [
+            'X-API-KEY: ' . $apiKey,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS     => json_encode(['q' => $query, 'gl' => 'fr', 'hl' => 'fr', 'num' => 5]),
+        CURLOPT_TIMEOUT        => 8,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    if (!$response) return '';
+    $data = json_decode($response, true);
+    if (!$data) return '';
+    $results = [];
+    if (!empty($data['answerBox']['answer'])) {
+        $results[] = $data['answerBox']['answer'];
+    }
+    if (!empty($data['organic'])) {
+        foreach (array_slice($data['organic'], 0, 3) as $r) {
+            if (!empty($r['snippet'])) $results[] = $r['title'] . ' : ' . $r['snippet'];
+        }
+    }
+    return implode("\n", $results);
+}
 
+function needsWebSearch($message) {
+    $keywords = [
+        'actualité', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
+        'prix', 'météo', 'résultat', 'match', 'score', 'élection',
+        'qui est', 'c\'est quoi', 'quand', 'où', '2025', '2026',
+        'news', 'info', 'dernières nouvelles',
+    ];
+    $msg = mb_strtolower($message);
+    foreach ($keywords as $kw) {
+        if (strpos($msg, $kw) !== false) return true;
+    }
+    return false;
+}
     // Mémoire
     $userMemory  = getUserMemory($db, $userId);
     $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
