@@ -296,7 +296,59 @@ Paramètres
 let currentConvId = null;
 let isBusy = false;
 let currentFile = null;
+// ── MICRO ──
+let recognition = null;
+let isListening = false;
 
+function toggleMic() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Ton navigateur ne supporte pas la reconnaissance vocale. Utilise Chrome ou Edge.');
+        return;
+    }
+    if (isListening) {
+        recognition.stop();
+        return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function() {
+        isListening = true;
+        const btn = document.getElementById('mic-btn');
+        btn.textContent = '🔴 Stop';
+        btn.style.borderColor = 'var(--err)';
+        btn.style.color = 'var(--err)';
+    };
+
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const inp = document.getElementById('msg-input');
+        inp.value += (inp.value ? ' ' : '') + transcript;
+        autoResize(inp);
+        document.getElementById('send-btn').disabled = false;
+    };
+
+    recognition.onend = function() {
+        isListening = false;
+        const btn = document.getElementById('mic-btn');
+        btn.textContent = '🎤 Micro';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+    };
+
+    recognition.onerror = function(e) {
+        isListening = false;
+        const btn = document.getElementById('mic-btn');
+        btn.textContent = '🎤 Micro';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+    };
+
+    recognition.start();
+}
 function toggleLight() {
     const body = document.body;
     const btn = document.getElementById('light-toggle');
