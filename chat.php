@@ -1,6 +1,6 @@
 <?php
 /**
- * VoAnh - API Chat complet
+ * VoAnh - API Chat complet et stable
  */
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
@@ -50,7 +50,7 @@ function isImageRequest($message) {
     $keywords = [
         'génère une image', 'générer une image', 'crée une image', 'créer une image',
         'génère moi une image', 'fais moi une image', 'dessine', 'génère un dessin',
-        'génère une photo', 'crée une photo', 'montre moi une image de',
+        'génère une photo', 'crée une photo',
     ];
     $msg = mb_strtolower($message);
     foreach ($keywords as $kw) {
@@ -115,21 +115,17 @@ try {
     $db      = Database::getInstance();
     $mistral = getMistralClient($apiKey);
 
-   if (!$convId && $userId) {
-        // Générer un titre court avec Mistral
-        $titlePrompt = [
-            ['role' => 'system', 'content' => 'Tu génères des titres de conversation TRÈS courts (3-5 mots max, sans ponctuation finale). Réponds UNIQUEMENT avec le titre, rien d\'autre.'],
-            ['role' => 'user', 'content' => 'Titre pour : ' . mb_substr($message ?: ($fileName ?? 'Image'), 0, 200)],
-        ];
-        $titleResult = $mistral->chat($titlePrompt, 'mistral-small-2603', ['max_tokens' => 20, 'temperature' => 0.5]);
-        $autoTitle = $titleResult['success'] ? trim($titleResult['content']) : mb_substr($message ?: ($fileName ?? 'Image'), 0, 60);
-        $autoTitle = mb_substr($autoTitle, 0, 60);
-
+    if (!$convId && $userId) {
         $convId = $db->insert('conversations', [
             'user_id'    => $userId,
-            'title'      => $autoTitle,
+            'title'      => mb_substr($message ?: ($fileName ?? 'Image'), 0, 60),
             'model_used' => $model,
         ]);
+    } elseif ($convId && $userId) {
+        $conv = $db->fetch("SELECT id FROM conversations WHERE id = ? AND user_id = ?", [$convId, $userId]);
+        if (!$conv) $convId = null;
+    }
+
     if ($convId) {
         $db->insert('messages', [
             'conversation_id' => $convId,
@@ -159,7 +155,6 @@ try {
         echo json_encode([
             'success'         => true,
             'content'         => $reply,
-            'image_url'       => $imageUrl,
             'model'           => $model,
             'conversation_id' => $convId,
         ]);
