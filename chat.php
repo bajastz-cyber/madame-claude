@@ -50,7 +50,8 @@ function isImageRequest($message) {
     $keywords = [
         'génère une image', 'générer une image', 'crée une image', 'créer une image',
         'génère moi une image', 'fais moi une image', 'dessine', 'génère un dessin',
-        'génère une photo', 'crée une photo',
+        'génère une photo', 'crée une photo', 'image de', 'photo de',
+        'montre moi', 'génère moi', 'fais moi voir', 'une image',
     ];
     $msg = mb_strtolower($message);
     foreach ($keywords as $kw) {
