@@ -494,8 +494,12 @@ function newChat() {
     currentConvId = null;
     document.getElementById('messages-list').innerHTML = '';
     document.getElementById('welcome').style.display = '';
+    document.getElementById('msg-input').value = '';
+    document.getElementById('send-btn').disabled = true;
+    removeFile();
     document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
     if (window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('msg-input').focus();
 }
 
 async function loadConversation(id) {
