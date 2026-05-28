@@ -393,6 +393,52 @@ document.addEventListener('click', function(e) {
     }
 });
  // ── LECTEUR MP3 ──
+function generateImageDirect() {
+    const inp = document.getElementById('msg-input');
+    const text = inp.value.trim();
+    if (!text) {
+        inp.placeholder = 'Décris l\'image que tu veux...';
+        inp.focus();
+        return;
+    }
+    document.getElementById('welcome').style.display = 'none';
+    const list = document.getElementById('messages-list');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'msg msg-user';
+    userDiv.innerHTML = `<div class="bubble">🎨 ${escHtml(text)}</div>`;
+    list.appendChild(userDiv);
+
+    const aiDiv = document.createElement('div');
+    aiDiv.className = 'msg msg-ai';
+    const imgId = 'img-' + Date.now();
+    aiDiv.innerHTML = `<div class="ai-avatar">✦</div><div class="ai-body"><div class="ai-meta"><span class="ai-name">VoAnh</span></div><div class="ai-content" id="${imgId}"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;
+    list.appendChild(aiDiv);
+    scrollBottom();
+
+    const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(text) + '?width=800&height=600&nologo=true&seed=' + Math.floor(Math.random()*10000);
+    const imgEl = document.getElementById(imgId);
+    const img = new Image();
+    img.onload = function() {
+        imgEl.innerHTML = `<img src="${url}" alt="${escHtml(text)}" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"><br><button class="download-btn" onclick="downloadImage('${url}', 'image.jpg')">⬇️ Télécharger</button>`;
+        scrollBottom();
+    };
+    img.onerror = function() {
+        imgEl.innerHTML = '<span style="color:var(--err)">⚠️ Impossible de générer l\'image. Réessaie !</span>';
+    };
+    img.src = url;
+
+    inp.value = '';
+    autoResize(inp);
+    document.getElementById('send-btn').disabled = true;
+}
+
+function downloadImage(url, filename) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.target = '_blank';
+    a.click();
+}    
 function loadMp3(input) {
     const file = input.files[0];
     if (!file) return;
