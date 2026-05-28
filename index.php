@@ -391,6 +391,16 @@ document.addEventListener('click', function(e) {
         panel.style.display = 'none';
     }
 });
+ // ── LECTEUR MP3 ──
+function loadMp3(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const audio = document.getElementById('mp3-audio');
+    const title = document.getElementById('mp3-title');
+    audio.src = URL.createObjectURL(file);
+    title.textContent = file.name;
+    audio.play();
+}   
 function toggleLight() {
     const body = document.body;
     const btn = document.getElementById('light-toggle');
