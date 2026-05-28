@@ -401,7 +401,17 @@ function loadMp3(input) {
     audio.src = URL.createObjectURL(file);
     title.textContent = file.name;
     audio.play();
-}   
+}
+
+function loadMp3Url() {
+    const url = prompt('Colle l\'URL du fichier audio (mp3, ogg, wav, flux radio...) :');
+    if (!url) return;
+    const audio = document.getElementById('mp3-audio');
+    const title = document.getElementById('mp3-title');
+    audio.src = url;
+    title.textContent = url.split('/').pop() || url;
+    audio.play();
+}
 function toggleLight() {
     const body = document.body;
     const btn = document.getElementById('light-toggle');
