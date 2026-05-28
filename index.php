@@ -539,19 +539,35 @@ async function deleteConversation(id) {
 }
 
 function addDownloadBtn(el, content) {
+    // Bouton copier
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'download-btn';
+    copyBtn.style.background = 'rgba(124,106,245,.15)';
+    copyBtn.style.border = '1px solid rgba(124,106,245,.3)';
+    copyBtn.style.color = 'var(--accent2)';
+    copyBtn.innerHTML = '📋 Copier';
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(content).then(() => {
+            copyBtn.innerHTML = '✅ Copié !';
+            setTimeout(() => copyBtn.innerHTML = '📋 Copier', 2000);
+        });
+    };
+    el.appendChild(copyBtn);
+
+    // Bouton télécharger si HTML
     const match = content.match(/```html\n?([\s\S]*?)```/);
     if (match) {
-        const btn = document.createElement('button');
-        btn.className = 'download-btn';
-        btn.innerHTML = '⬇️ Télécharger le fichier';
-        btn.onclick = () => {
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'download-btn';
+        dlBtn.innerHTML = '⬇️ Télécharger';
+        dlBtn.onclick = () => {
             const blob = new Blob([match[1]], {type:'text/html'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'index.html';
             a.click();
         };
-        el.appendChild(btn);
+        el.appendChild(dlBtn);
     }
 }
 
