@@ -453,7 +453,7 @@ async function loadConversation(id) {
     document.getElementById('messages-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Chargement…</div>';
     if (window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
     try {
-        const r = await fetch('conversations.php?id='+id);
+       const r = await fetch('conversations.php?action=messages&id='+id);
         const data = await r.json();
         const list = document.getElementById('messages-list');
         list.innerHTML = '';
