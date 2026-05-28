@@ -276,6 +276,7 @@ Paramètres
 <div class="input-actions">
 <div class="quick-btns">
 <button class="upload-btn" onclick="document.getElementById('file-input').click()">📎 Joindre</button>
+<button class="upload-btn" id="mic-btn" onclick="toggleMic()" title="Parler">🎤 Micro</button>
 <button class="quick-btn" onclick="setPrompt('Explique en détail : ')">💡 Expliquer</button>
 <button class="quick-btn" onclick="setPrompt('Génère le code pour : ')">💻 Coder</button>
 <button class="quick-btn" onclick="setPrompt('Analyse ce texte : ')">🔍 Analyser</button>
