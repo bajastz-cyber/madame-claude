@@ -276,6 +276,12 @@ Paramètres
 <div class="input-actions">
 <div class="quick-btns">
 <button class="upload-btn" onclick="document.getElementById('file-input').click()">📎 Joindre</button>
+<button class="upload-btn" id="emoji-btn" onclick="toggleEmoji()" title="Émojis">😊 Émojis</button>
+<div id="emoji-panel" style="display:none;position:absolute;bottom:80px;left:20px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:10px;z-index:100;width:280px;max-height:200px;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.3)">
+<div style="display:flex;flex-wrap:wrap;gap:4px">
+😊 😂 🥰 😎 🤔 😅 🙏 👍 👎 ❤️ 🔥 ✅ ⚠️ 🎉 🚀 💡 💻 📋 📎 🔍 🌍 🎨 🐕 🐾 🌲 ☀️ 🌙 ⭐ 💪 👏 🤝 😴 🍕 🎵 📱 💬 🔑 🏠 🚗 ✈️ 🌺 🦋 🐶 🐱 🐴
+</div>
+</div>
 <button class="upload-btn" id="mic-btn" onclick="toggleMic()" title="Parler">🎤 Micro</button>
 <button class="quick-btn" onclick="setPrompt('Explique en détail : ')">💡 Expliquer</button>
 <button class="quick-btn" onclick="setPrompt('Génère le code pour : ')">💻 Coder</button>
