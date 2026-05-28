@@ -1,6 +1,6 @@
 <?php
 /**
- * VoAnh - API Chat avec mémoire + recherche web + génération d'images
+ * VoAnh - API Chat complet
  */
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
@@ -46,13 +46,11 @@ if (!in_array($model, $allModels)) $model = MASTER_AGENT_MODEL;
 $visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
 $isVisionModel = in_array($model, $visionModels);
 
-// ── GÉNÉRATION D'IMAGES ──
 function isImageRequest($message) {
     $keywords = [
         'génère une image', 'générer une image', 'crée une image', 'créer une image',
-        'dessine', 'dessiner', 'génère moi', 'montre moi une image', 'fais moi une image',
-        'génère un dessin', 'créer un dessin', 'illustration de', 'image de',
-        'photo de', 'génère une photo', 'visualise', 'représente',
+        'génère moi une image', 'fais moi une image', 'dessine', 'génère un dessin',
+        'génère une photo', 'crée une photo', 'montre moi une image de',
     ];
     $msg = mb_strtolower($message);
     foreach ($keywords as $kw) {
@@ -61,53 +59,6 @@ function isImageRequest($message) {
     return false;
 }
 
-function generateImage($prompt) {
-    // Traduire le prompt en anglais via Mistral serait idéal,
-    // mais on utilise le prompt directement — Pollinations supporte le français
-    $encodedPrompt = urlencode($prompt);
-    $imageUrl = 'https://image.pollinations.ai/prompt/' . $encodedPrompt . '?width=800&height=600&nologo=true';
-    return $imageUrl;
-}
-
-// ── RECHERCHE WEB ──
-function searchWeb($query) {
-    $url = 'https://api.duckduckgo.com/?q=' . urlencode($query) . '&format=json&no_html=1&skip_disambig=1';
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 8,
-        CURLOPT_USERAGENT      => 'VoAnh/1.0',
-        CURLOPT_FOLLOWLOCATION => true,
-    ]);
-    $response = curl_exec($ch);
-    curl_close($ch);
-    if (!$response) return '';
-    $data = json_decode($response, true);
-    if (!$data) return '';
-    $results = [];
-    if (!empty($data['AbstractText'])) $results[] = $data['AbstractText'];
-    if (!empty($data['RelatedTopics'])) {
-        foreach (array_slice($data['RelatedTopics'], 0, 3) as $topic) {
-            if (!empty($topic['Text'])) $results[] = $topic['Text'];
-        }
-    }
-    return implode("\n", $results);
-}
-
-function needsWebSearch($message) {
-    $keywords = [
-        'actualité', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
-        'prix', 'météo', 'résultat', 'match', 'score', 'élection',
-        'qui est', 'c\'est quoi', 'quand', 'où se trouve', '2025', '2026',
-    ];
-    $msg = mb_strtolower($message);
-    foreach ($keywords as $kw) {
-        if (strpos($msg, $kw) !== false) return true;
-    }
-    return false;
-}
-
-// ── MÉMOIRE UTILISATEUR ──
 function getUserMemory($db, $userId) {
     if (!$userId) return '';
     $memories = $db->fetchAll(
@@ -184,10 +135,11 @@ try {
         ]);
     }
 
-    // ── GÉNÉRATION D'IMAGE ──
+    // Génération d'image
     if ($message && isImageRequest($message)) {
-        $imageUrl = generateImage($message);
-        $reply = "![Image générée]($imageUrl)";
+        $prompt = urlencode($message);
+        $imageUrl = 'https://image.pollinations.ai/prompt/' . $prompt . '?width=800&height=600&nologo=true';
+        $reply = '__IMAGE__' . $imageUrl;
 
         if ($convId) {
             $db->insert('messages', [
@@ -210,21 +162,14 @@ try {
         exit;
     }
 
-    // Mémoire utilisateur
+    // Mémoire
     $userMemory  = getUserMemory($db, $userId);
     $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
-
-    // Recherche web
-    $webBlock = '';
-    if ($message && needsWebSearch($message)) {
-        $webResults = searchWeb($message);
-        if ($webResults) $webBlock = "\n\nRésultats web :\n" . $webResults;
-    }
 
     $apiMessages = [];
     $apiMessages[] = [
         'role'    => 'system',
-        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin." . $memoryBlock . $webBlock,
+        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées du code HTML/CSS/JS, mets-le TOUJOURS dans un bloc ```html." . $memoryBlock,
     ];
 
     if ($convId) {
@@ -251,11 +196,11 @@ try {
         } else {
             $apiMessages[] = [
                 'role'    => 'user',
-                'content' => ($message ?: 'Analyse cette image.') . "\n\n⚠️ Le modèle sélectionné ne supporte pas la vision. Sélectionne \"Vision Analyzer Max\" ou \"Vision Analyzer Light\" pour analyser des images.",
+                'content' => ($message ?: 'Analyse cette image.') . "\n\n⚠️ Sélectionne Vision Analyzer Max ou Light pour analyser des images.",
             ];
         }
     } elseif ($fileBase64 && $fileMime === 'application/pdf') {
-        $apiMessages[] = ['role' => 'user', 'content' => "Fichier PDF joint : $fileName\n\n" . $message];
+        $apiMessages[] = ['role' => 'user', 'content' => "Fichier PDF : $fileName\n\n" . $message];
     } else {
         $apiMessages[] = ['role' => 'user', 'content' => $message];
     }
