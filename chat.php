@@ -1,8 +1,7 @@
 <?php
 error_reporting(0); ini_set("display_errors", 0);
-error_reporting(0); ini_set("display_errors", 0);
 /**
- * MadameClaude - API Chat
+ * VoAnh - API Chat
  * Mistral AI + Recherche web Serper + Mémoire utilisateur + Vision + Images Pollinations
  */
 
@@ -151,7 +150,6 @@ function getUserMemory($db, $userId) {
 // ── SAUVEGARDE MÉMOIRE ────────────────────────────────────────────
 function saveMemoryFromConversation($db, $userId, $userMsg, $assistantReply) {
     if (!$userId) return;
-    // Détecter si l'utilisateur donne une info sur lui
     $patterns = [
         '/je m\'appelle ([A-ZÀ-Ÿa-zà-ÿ\s]+)/i'        => 'prénom',
         '/mon prénom est ([A-ZÀ-Ÿa-zà-ÿ\s]+)/i'        => 'prénom',
@@ -176,7 +174,7 @@ function saveMemoryFromConversation($db, $userId, $userMsg, $assistantReply) {
     }
 }
 
-// ── HISTORIQUE CONVERSATION ───────────────────────────────────────
+// ── BASE DE DONNÉES ───────────────────────────────────────────────
 $db = Database::getInstance();
 $history = [];
 
@@ -192,7 +190,7 @@ if ($convId) {
     } catch (Exception $e) { /* ignore */ }
 }
 
-// ── CONSTRUIRE LE CONTEXTE SYSTÈME ───────────────────────────────
+// ── CONTEXTE SYSTÈME ──────────────────────────────────────────────
 $userMemory  = getUserMemory($db, $userId);
 $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
 
@@ -204,7 +202,7 @@ if ($message) {
     }
 }
 
-$systemPrompt = "Tu es MadameClaude, un assistant IA avancé, intelligent, précis, créatif et bienveillant. "
+$systemPrompt = "Tu es VoAnh, un assistant IA avancé, intelligent, précis, créatif et bienveillant. "
     . "Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. "
     . "Tu peux coder, analyser, créer et planifier des tâches complexes. "
     . "Quand tu crées du code HTML/CSS/JS, mets-le TOUJOURS dans un bloc ```html. "
@@ -215,7 +213,6 @@ $systemPrompt = "Tu es MadameClaude, un assistant IA avancé, intelligent, préc
 // ── CONSTRUCTION DES MESSAGES ─────────────────────────────────────
 $mistral = new MistralClient();
 
-// Construire le message utilisateur (avec fichier si présent)
 if ($fileBase64 && $fileMime && $isVisionModel) {
     $userContent = [
         [
@@ -232,12 +229,24 @@ if ($fileBase64 && $fileMime && $isVisionModel) {
     $userContent = $message ?: 'Analyse ce fichier.';
 }
 
-// Construire le tableau complet des messages API
 $apiMessages = [['role' => 'system', 'content' => $systemPrompt]];
 foreach ($history as $h) {
     $apiMessages[] = ['role' => $h['role'], 'content' => $h['content']];
 }
 $apiMessages[] = ['role' => 'user', 'content' => $userContent];
+
+// ── CRÉER LA CONVERSATION SI NÉCESSAIRE ──────────────────────────
+if (!$convId && $message) {
+    try {
+        $title = mb_substr($message, 0, 60);
+        $db->execute(
+            "INSERT INTO conversations (user_id, title, model_used, created_at, updated_at)
+             VALUES (?, ?, ?, datetime('now'), datetime('now'))",
+            [$userId, $title, $model]
+        );
+        $convId = $db->lastInsertId();
+    } catch (Exception $e) { /* ignore */ }
+}
 
 // ── SAUVEGARDER LE MESSAGE UTILISATEUR ───────────────────────────
 if ($convId && $message) {
@@ -250,15 +259,14 @@ if ($convId && $message) {
     } catch (Exception $e) { /* ignore */ }
 }
 
-// ── APPEL MISTRAL ─────────────────────────────────────────────────
-// Si c'est une demande d'image, on retourne directement l'URL Pollinations
+// ── DEMANDE D'IMAGE → Pollinations ───────────────────────────────
 if (isImageRequest($message)) {
     $prompt = preg_replace('/génère une image|créer? une image|fais moi une image|dessine|génère moi une image/i', '', $message);
     $prompt = trim($prompt);
     $url = 'https://image.pollinations.ai/prompt/' . urlencode($prompt)
          . '?width=800&height=600&nologo=true&seed=' . rand(1000, 9999);
 
-    $reply = "🎨 Voici ton image !\n\n![image générée](" . $url . ")\n\n[⬇️ Télécharger l'image](" . $url . ")";
+    $reply = '__IMAGE__' . $url;
 
     if ($convId) {
         try {
@@ -285,7 +293,7 @@ if (isImageRequest($message)) {
     exit;
 }
 
-// Appel normal Mistral
+// ── APPEL MISTRAL ─────────────────────────────────────────────────
 $result = $mistral->chat($apiMessages, $model, [
     'temperature' => 0.7,
     'max_tokens'  => 4096,
@@ -294,7 +302,6 @@ $result = $mistral->chat($apiMessages, $model, [
 if ($result['success']) {
     $reply = $result['content'];
 
-    // Sauvegarder la réponse assistant
     if ($convId) {
         try {
             $db->execute(
@@ -309,7 +316,6 @@ if ($result['success']) {
         } catch (Exception $e) { /* ignore */ }
     }
 
-    // Tenter de sauvegarder infos mémoire
     if ($userId && $message) {
         saveMemoryFromConversation($db, $userId, $message, $reply);
     }
@@ -324,7 +330,7 @@ if ($result['success']) {
     ]);
 
 } else {
-    error_log("MadameClaude chat error: " . ($result['error'] ?? 'unknown'));
+    error_log("VoAnh chat error: " . ($result['error'] ?? 'unknown'));
     echo json_encode([
         'success' => false,
         'error'   => $result['error'] ?? "Erreur de l'API Mistral",
