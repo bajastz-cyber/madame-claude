@@ -3,7 +3,6 @@ require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
 require_once dirname(__FILE__) . '/auth.php';
 
-session_start();
 $auth = new Auth();
 $user = $auth->getCurrentUser();
 $db   = Database::getInstance();
@@ -38,7 +37,7 @@ $defaultModel = MASTER_AGENT_MODEL;
 --err:#f87171;--radius:14px;--radius-sm:8px
 }
 body{display:flex;height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px}
-body.theme-light{--bg:#f5f5fa;--surface:#ebebf5;--card:#ffffff;--border:#d8d8e8;--border2:#c8c8dc;--text:#1a1a2e;--muted:#8080a0;--muted2:#5050708;--user-bg:#ede9ff;--user-border:#c4b8ff}
+body.theme-light{--bg:#f5f5fa;--surface:#ebebf5;--card:#ffffff;--border:#d8d8e8;--border2:#c8c8dc;--text:#1a1a2e;--muted:#8080a0;--muted2:#505070;--user-bg:#ede9ff;--user-border:#c4b8ff}
 body.theme-green{--accent:#22c55e;--accent2:#4ade80;--accent3:#86efac;--user-bg:#0f2e1a;--user-border:#166534}
 body.theme-pink{--accent:#ec4899;--accent2:#f472b6;--accent3:#fbcfe8;--user-bg:#2e0f1e;--user-border:#831843}
 body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fed7aa;--user-bg:#2e1a0f;--user-border:#7c2d12}
@@ -109,9 +108,6 @@ body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fed7aa;--user-bg
 .ai-content h1,.ai-content h2,.ai-content h3{margin:16px 0 8px;font-weight:600}
 .ai-content h1{font-size:20px}.ai-content h2{font-size:17px}.ai-content h3{font-size:15px}
 .ai-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:12px 0;color:var(--muted2);font-style:italic}
-.copy-btn{position:absolute;top:8px;right:8px;background:var(--border2);border:none;color:var(--muted2);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;opacity:0;transition:opacity .2s}
-.msg-ai:hover .copy-btn{opacity:1}
-.copy-btn:hover{background:var(--accent);color:#fff}
 .ai-content strong{color:var(--accent3);font-weight:500}
 .ai-content table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px}
 .ai-content th{background:var(--surface);padding:8px 12px;border:1px solid var(--border2);text-align:left;font-weight:500;color:var(--accent3)}
@@ -147,8 +143,10 @@ body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fed7aa;--user-bg
 .file-preview{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(124,106,245,.1);border:1px solid rgba(124,106,245,.2);border-radius:var(--radius-sm);font-size:12.5px;color:var(--accent2);margin-bottom:8px}
 .file-preview .remove-file{cursor:pointer;color:var(--muted);font-size:15px;margin-left:auto}
 .file-preview .remove-file:hover{color:var(--err)}
-.download-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
-.download-btn:hover{opacity:.85}
+.action-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;margin-right:6px;padding:7px 14px;border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.action-btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.action-btn-secondary{background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);color:var(--accent2)}
+.action-btn:hover{opacity:.85}
 .sidebar-toggle{display:none;position:fixed;top:14px;left:14px;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;cursor:pointer;color:var(--muted2)}
 @media(max-width:768px){
 .sidebar{position:fixed;transform:translateX(-100%);z-index:50}
@@ -285,7 +283,7 @@ Paramètres
 <div id="emoji-panel" style="display:none;position:absolute;bottom:80px;left:20px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:10px;z-index:100;width:280px;max-height:200px;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.3)">
 <div style="display:flex;flex-wrap:wrap;gap:4px">
 <?php foreach(['😊','😂','🥰','😎','🤔','😅','🙏','👍','👎','❤️','🔥','✅','⚠️','🎉','🚀','💡','💻','📋','📎','🔍','🌍','🎨','🐕','🐾','🌲','☀️','🌙','⭐','💪','👏','🤝','😴','🍕','🎵','📱','💬','🔑','🏠','🚗','✈️','🌺','🦋','🐶','🐱','🐴'] as $e): ?>
-<span onclick="insertEmoji('<?= $e ?>')" style="font-size:22px;cursor:pointer;padding:2px;border-radius:4px;display:inline-block" title="<?= $e ?>"><?= $e ?></span>
+<span onclick="insertEmoji('<?= $e ?>')" style="font-size:22px;cursor:pointer;padding:2px;border-radius:4px;display:inline-block"><?= $e ?></span>
 <?php endforeach; ?>
 </div>
 </div>
@@ -293,7 +291,6 @@ Paramètres
 <button class="quick-btn" onclick="setPrompt('Explique en détail : ')">💡 Expliquer</button>
 <button class="quick-btn" onclick="setPrompt('Génère le code pour : ')">💻 Coder</button>
 <button class="quick-btn" onclick="setPrompt('Analyse ce texte : ')">🔍 Analyser</button>
-<button class="quick-btn" onclick="generateImageDirect()">🎨 Image</button>
 </div>
 <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
@@ -354,7 +351,7 @@ function toggleMic() {
         btn.style.borderColor = '';
         btn.style.color = '';
     };
-    recognition.onerror = function(e) {
+    recognition.onerror = function() {
         isListening = false;
         const btn = document.getElementById('mic-btn');
         btn.textContent = '🎤 Micro';
@@ -387,42 +384,6 @@ document.addEventListener('click', function(e) {
         panel.style.display = 'none';
     }
 });
-
-function generateImageDirect() {
-    const inp = document.getElementById('msg-input');
-    const text = inp.value.trim();
-    if (!text) { inp.placeholder = 'Décris l\'image que tu veux...'; inp.focus(); return; }
-    document.getElementById('welcome').style.display = 'none';
-    const list = document.getElementById('messages-list');
-    const userDiv = document.createElement('div');
-    userDiv.className = 'msg msg-user';
-    userDiv.innerHTML = `<div class="bubble">🎨 ${escHtml(text)}</div>`;
-    list.appendChild(userDiv);
-    const aiDiv = document.createElement('div');
-    aiDiv.className = 'msg msg-ai';
-    const imgId = 'img-' + Date.now();
-    aiDiv.innerHTML = `<div class="ai-avatar">✦</div><div class="ai-body"><div class="ai-meta"><span class="ai-name">VoAnh</span></div><div class="ai-content" id="${imgId}"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;
-    list.appendChild(aiDiv);
-    scrollBottom();
-    const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(text) + '?width=800&height=600&nologo=true&seed=' + Math.floor(Math.random()*10000);
-    const imgEl = document.getElementById(imgId);
-    const img = new Image();
-    img.onload = function() {
-        imgEl.innerHTML = `<img src="${url}" alt="${escHtml(text)}" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"><br><button class="download-btn" onclick="downloadImage('${url}', 'image.jpg')">⬇️ Télécharger</button>`;
-        scrollBottom();
-    };
-    img.onerror = function() {
-        imgEl.innerHTML = '<span style="color:var(--err)">⚠️ Impossible de générer l\'image. Réessaie !</span>';
-    };
-    img.src = url;
-    inp.value = ''; autoResize(inp);
-    document.getElementById('send-btn').disabled = true;
-}
-
-function downloadImage(url, filename) {
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.target = '_blank'; a.click();
-}
 
 function loadMp3(input) {
     const file = input.files[0];
@@ -524,35 +485,23 @@ function escHtml(s) {
 
 function renderMarkdown(text) {
     let out = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    // Images markdown AVANT les autres remplacements
     out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:10px;margin:10px 0;display:block">');
-    // Blocs de code
     out = out.replace(/```[\w]*\n?([\s\S]*?)```/g, (_,code) => `<pre><code>${code.trim()}</code></pre>`);
-    // Code inline
     out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Gras et italique
     out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    // Titres
     out = out.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
     out = out.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     out = out.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     out = out.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    // Citations
     out = out.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-    // Listes
     out = out.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
     out = out.replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`);
-    // Sauts de ligne
     out = out.replace(/\n/g, '<br>');
     return out;
 }
 
 function renderContent(content) {
-    if (content.startsWith('__IMAGE__')) {
-        const url = content.replace('__IMAGE__','');
-        return `<img src="${escHtml(url)}" alt="Image générée" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"><br><button class="download-btn" onclick="downloadImage('${escHtml(url)}','image.jpg')">⬇️ Télécharger</button>`;
-    }
     return renderMarkdown(content);
 }
 
@@ -635,7 +584,7 @@ async function loadConversation(id) {
                     div.className = 'msg msg-ai';
                     const contentHtml = renderContent(msg.content);
                     div.innerHTML = `<div class="ai-avatar">✦</div><div class="ai-body"><div class="ai-meta"><span class="ai-name">VoAnh</span><span class="ai-model">${escHtml(msg.model_used||'')}</span></div><div class="ai-content">${contentHtml}</div></div>`;
-                    addDownloadBtn(div.querySelector('.ai-content'), msg.content);
+                    addActionButtons(div.querySelector('.ai-content'), msg.content);
                 }
                 list.appendChild(div);
             });
@@ -653,12 +602,10 @@ async function deleteConversation(id) {
     if (currentConvId===id) newChat();
 }
 
-function addDownloadBtn(el, content) {
+function addActionButtons(el, content) {
+    // Bouton copier
     const copyBtn = document.createElement('button');
-    copyBtn.className = 'download-btn';
-    copyBtn.style.background = 'rgba(124,106,245,.15)';
-    copyBtn.style.border = '1px solid rgba(124,106,245,.3)';
-    copyBtn.style.color = 'var(--accent2)';
+    copyBtn.className = 'action-btn action-btn-secondary';
     copyBtn.innerHTML = '📋 Copier';
     copyBtn.onclick = () => {
         navigator.clipboard.writeText(content).then(() => {
@@ -667,10 +614,32 @@ function addDownloadBtn(el, content) {
         });
     };
     el.appendChild(copyBtn);
+
+    // Bouton écouter
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'action-btn action-btn-secondary';
+    speakBtn.innerHTML = '🔊 Écouter';
+    speakBtn.onclick = () => {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            speakBtn.innerHTML = '🔊 Écouter';
+            return;
+        }
+        const cleanText = content.replace(/```[\s\S]*?```/g, 'bloc de code').replace(/[#*_`>\[\]]/g, '').replace(/\n/g, ' ');
+        const utt = new SpeechSynthesisUtterance(cleanText);
+        utt.lang = 'fr-FR';
+        utt.rate = 1;
+        speakBtn.innerHTML = '⏹️ Stop';
+        utt.onend = () => speakBtn.innerHTML = '🔊 Écouter';
+        window.speechSynthesis.speak(utt);
+    };
+    el.appendChild(speakBtn);
+
+    // Bouton télécharger si HTML
     const match = content.match(/```html\n?([\s\S]*?)```/);
     if (match) {
         const dlBtn = document.createElement('button');
-        dlBtn.className = 'download-btn';
+        dlBtn.className = 'action-btn action-btn-primary';
         dlBtn.innerHTML = '⬇️ Télécharger';
         dlBtn.onclick = () => {
             const blob = new Blob([match[1]], {type:'text/html'});
@@ -680,27 +649,6 @@ function addDownloadBtn(el, content) {
             a.click();
         };
         el.appendChild(dlBtn);
-        // Bouton vocal
-const speakBtn = document.createElement('button');
-speakBtn.className = 'download-btn';
-speakBtn.style.background = 'rgba(124,106,245,.15)';
-speakBtn.style.border = '1px solid rgba(124,106,245,.3)';
-speakBtn.style.color = 'var(--accent2)';
-speakBtn.innerHTML = '🔊 Écouter';
-speakBtn.onclick = () => {
-    if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        speakBtn.innerHTML = '🔊 Écouter';
-        return;
-    }
-    const utt = new SpeechSynthesisUtterance(content.replace(/```[\s\S]*?```/g, 'bloc de code').replace(/[#*_`]/g, ''));
-    utt.lang = 'fr-FR';
-    utt.rate = 1;
-    speakBtn.innerHTML = '⏹️ Stop';
-    utt.onend = () => speakBtn.innerHTML = '🔊 Écouter';
-    window.speechSynthesis.speak(utt);
-};
-el.appendChild(speakBtn);
     }
 }
 
@@ -737,8 +685,7 @@ async function sendMessage() {
         if (data.success) {
             currentConvId = data.conversation_id || currentConvId;
             aiEl.innerHTML = renderContent(data.content);
-            addDownloadBtn(aiEl, data.content);
-            // Rafraîchir la sidebar si nouvelle conversation
+            addActionButtons(aiEl, data.content);
             if (!document.getElementById('conv-' + currentConvId)) {
                 await refreshConvList();
             }
