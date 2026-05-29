@@ -1,21 +1,23 @@
 <?php
 require_once dirname(__FILE__) . '/config.php';
-require_once dirname(__FILE__) . '/auth.php';
 require_once dirname(__FILE__) . '/database.php';
+require_once dirname(__FILE__) . '/auth.php';
 
+session_start();
 $auth = new Auth();
 $user = $auth->getCurrentUser();
+$db   = Database::getInstance();
 
 $recentConvs = [];
 if ($user) {
-    $db = Database::getInstance();
-    $recentConvs = $db->fetchAll(
-        "SELECT id, title, model_used, updated_at FROM conversations
-         WHERE user_id = ? AND is_archived = 0
-         ORDER BY updated_at DESC LIMIT 30",
-        [$user['id']]
-    );
+    try {
+        $recentConvs = $db->fetchAll(
+            "SELECT id, title, model_used, updated_at FROM conversations WHERE user_id = ? AND is_archived = 0 ORDER BY updated_at DESC LIMIT 50",
+            [$user['id']]
+        );
+    } catch (Exception $e) {}
 }
+
 $defaultModel = MASTER_AGENT_MODEL;
 ?>
 <!DOCTYPE html>
@@ -24,61 +26,61 @@ $defaultModel = MASTER_AGENT_MODEL;
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VoAnh — Assistant IA</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
---bg:#0a0a0f;--sidebar:#0f0f18;--card:#13131e;--surface:#18182a;
---border:#1e1e30;--border2:#252538;--text:#e8e6f5;--muted:#5c5a72;
---muted2:#8886a0;--accent:#7c6af5;--accent2:#a78bfa;--accent3:#c4b5fd;
---user-bg:#1a1a2e;--user-border:#2a2a48;--err:#f87171;
---sidebar-w:260px;--radius:14px;--radius-sm:8px;
+--bg:#0d0d1a;--surface:#13131e;--card:#1a1a2e;--border:#2a2a3e;--border2:#333350;
+--text:#e8e8f0;--muted:#6b6b8a;--muted2:#9090b0;
+--accent:#7c6af5;--accent2:#a89cf7;--accent3:#c4b8ff;
+--user-bg:#1e1e35;--user-border:#3a3a5c;
+--err:#f87171;--radius:14px;--radius-sm:8px
 }
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.65;display:flex}
-body.theme-light{--bg:#f5f4f0;--sidebar:#fff;--card:#fff;--surface:#f0ede8;--border:#e0dcd5;--border2:#ccc8c0;--text:#1a1a2e;--muted:#9896a8;--muted2:#6b697e;--user-bg:#e8e6f5;--user-border:#c4b5fd}
-body.theme-green{--accent:#22c55e;--accent2:#4ade80;--accent3:#86efac}
-body.theme-pink{--accent:#ec4899;--accent2:#f472b6;--accent3:#f9a8d4}
-body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fdba74}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
-.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:10}
-.sidebar-top{padding:20px 16px 12px;border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
-.brand-name{font-family:'DM Serif Display',serif;font-size:19px;background:linear-gradient(135deg,var(--accent3),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.new-chat-btn{width:100%;padding:10px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:13.5px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px}
-.new-chat-btn svg{width:15px;height:15px}
-.sidebar-search{padding:10px 16px}
-.sidebar-search input{width:100%;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+body{display:flex;height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px}
+body.theme-light{--bg:#f5f5fa;--surface:#ebebf5;--card:#ffffff;--border:#d8d8e8;--border2:#c8c8dc;--text:#1a1a2e;--muted:#8080a0;--muted2:#5050708;--user-bg:#ede9ff;--user-border:#c4b8ff}
+body.theme-green{--accent:#22c55e;--accent2:#4ade80;--accent3:#86efac;--user-bg:#0f2e1a;--user-border:#166534}
+body.theme-pink{--accent:#ec4899;--accent2:#f472b6;--accent3:#fbcfe8;--user-bg:#2e0f1e;--user-border:#831843}
+body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fed7aa;--user-bg:#2e1a0f;--user-border:#7c2d12}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;transition:transform .3s}
+.sidebar-top{padding:16px 12px 12px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 6px 16px}
+.brand-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0}
+.brand-name{font-size:17px;font-weight:600;color:var(--text)}
+.new-chat-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--radius-sm);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .2s}
+.new-chat-btn:hover{opacity:.9}
+.new-chat-btn svg{width:16px;height:16px;flex-shrink:0}
+.sidebar-search{padding:8px 12px;flex-shrink:0}
+.sidebar-search input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;padding:8px 12px;outline:none}
 .sidebar-search input:focus{border-color:var(--accent)}
-.conv-list{flex:1;overflow-y:auto;padding:4px 8px}
-.conv-section-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:10px 8px 4px}
-.conv-item{display:flex;align-items:center;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;gap:8px;color:var(--muted2);font-size:13.5px;transition:background .15s}
-.conv-item:hover{background:var(--surface);color:var(--text)}
-.conv-item.active{background:rgba(124,106,245,.15);color:var(--text)}
-.conv-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.conv-del{opacity:0;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px;font-size:14px;transition:opacity .15s}
+.conv-list{flex:1;overflow-y:auto;padding:4px 8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.conv-section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;padding:8px 6px 4px}
+.conv-item{display:flex;align-items:center;gap:6px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s;position:relative}
+.conv-item:hover{background:var(--card)}
+.conv-item.active{background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.2)}
+.conv-title{flex:1;font-size:13px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item.active .conv-title{color:var(--accent2)}
+.conv-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;opacity:0;padding:2px 4px;border-radius:4px;flex-shrink:0}
 .conv-item:hover .conv-del{opacity:1}
-.conv-del:hover{color:var(--err)}
-.sidebar-footer{border-top:1px solid var(--border);padding:12px 10px}
-.theme-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--border);flex-wrap:wrap}
-.theme-btn{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .2s,border-color .2s}
-.theme-btn:hover{transform:scale(1.2)}
-.theme-btn.active{border-color:var(--text)}
-.theme-toggle{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif}
-.nav-link{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);color:var(--muted2);text-decoration:none;font-size:13.5px;transition:background .15s}
-.nav-link:hover{background:var(--surface);color:var(--text)}
-.nav-link svg{width:16px;height:16px}
-.user-pill{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-top:4px}
-.user-avatar{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff}
-.user-name{font-size:13px;color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.logout-link{color:var(--muted);font-size:18px;text-decoration:none;padding:4px}
+.conv-del:hover{color:var(--err);background:rgba(248,113,113,.1)}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border);flex-shrink:0}
+.theme-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.theme-toggle{background:var(--card);border:1px solid var(--border);border-radius:99px;color:var(--muted2);font-size:12px;font-family:'DM Sans',sans-serif;padding:5px 12px;cursor:pointer;flex-shrink:0}
+.theme-btn{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .2s}
+.theme-btn.active,.theme-btn:hover{border-color:var(--text)}
+.nav-link{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--radius-sm);color:var(--muted2);font-size:13px;text-decoration:none;transition:background .15s,color .15s;margin-bottom:4px}
+.nav-link:hover{background:var(--card);color:var(--text)}
+.nav-link svg{width:16px;height:16px;flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card);border-radius:var(--radius-sm);margin-top:6px}
+.user-avatar{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.user-name{flex:1;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-link{color:var(--muted);font-size:18px;text-decoration:none;flex-shrink:0}
 .logout-link:hover{color:var(--err)}
-.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;position:relative}
-.messages-wrap{flex:1;overflow-y:auto;position:relative;z-index:1}
-.messages-inner{max-width:740px;margin:0 auto;padding:40px 24px 20px}
-.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:60px 20px 20px}
-.welcome-icon{width:56px;height:56px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:20px;box-shadow:0 0 40px rgba(124,106,245,.3)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.messages-wrap{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.messages-inner{max-width:740px;margin:0 auto;padding:32px 24px 20px}
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:20px}
+.welcome-icon{font-size:40px;margin-bottom:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .welcome h1{font-family:'DM Serif Display',serif;font-size:34px;background:linear-gradient(135deg,var(--text) 40%,var(--muted2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
 .welcome-sub{color:var(--muted2);font-size:16px;margin-bottom:44px}
 .starters{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;max-width:560px}
@@ -183,8 +185,8 @@ Nouvelle conversation
 <input type="text" id="conv-search" placeholder="Rechercher…" oninput="filterConvs(this.value)">
 </div>
 <div class="conv-list" id="conv-list">
-<?php if ($recentConvs): ?>
 <div class="conv-section-label">Récents</div>
+<?php if ($recentConvs): ?>
 <?php foreach ($recentConvs as $c): ?>
 <div class="conv-item" id="conv-<?= (int)$c['id'] ?>" data-id="<?= (int)$c['id'] ?>" onclick="loadConversation(<?= (int)$c['id'] ?>)">
 <span class="conv-title"><?= htmlspecialchars($c['title'] ?: 'Conversation') ?></span>
@@ -299,16 +301,15 @@ Paramètres
 </div>
 </div>
 <div class="input-hint">VoAnh peut faire des erreurs. Vérifiez les informations importantes.</div>
-    <!-- Lecteur MP3 -->
 <div id="mp3-player" style="background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:12px;margin:10px 24px 0;max-width:740px;margin-left:auto;margin-right:auto">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <span style="font-size:13px;color:var(--muted2)">🎵</span>
-        <span id="mp3-title" style="font-size:13px;color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aucun fichier sélectionné</span>
-        <button onclick="document.getElementById('mp3-input').click()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">📂 Fichier</button>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+<span style="font-size:13px;color:var(--muted2)">🎵</span>
+<span id="mp3-title" style="font-size:13px;color:var(--muted2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aucun fichier sélectionné</span>
+<button onclick="document.getElementById('mp3-input').click()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">📂 Fichier</button>
 <button onclick="loadMp3Url()" style="background:rgba(124,106,245,.15);border:1px solid rgba(124,106,245,.3);border-radius:var(--radius-sm);color:var(--accent2);padding:4px 10px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif">🌐 URL</button>
-        <input type="file" id="mp3-input" accept="audio/*" style="display:none" onchange="loadMp3(this)">
-    </div>
-    <audio id="mp3-audio" style="width:100%;height:32px" controls></audio>
+<input type="file" id="mp3-input" accept="audio/*" style="display:none" onchange="loadMp3(this)">
+</div>
+<audio id="mp3-audio" style="width:100%;height:32px" controls></audio>
 </div>
 </div>
 </div>
@@ -318,7 +319,6 @@ Paramètres
 let currentConvId = null;
 let isBusy = false;
 let currentFile = null;
-// ── MICRO ──
 let recognition = null;
 let isListening = false;
 
@@ -327,16 +327,12 @@ function toggleMic() {
         alert('Ton navigateur ne supporte pas la reconnaissance vocale. Utilise Chrome ou Edge.');
         return;
     }
-    if (isListening) {
-        recognition.stop();
-        return;
-    }
+    if (isListening) { recognition.stop(); return; }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.lang = 'fr-FR';
     recognition.continuous = false;
     recognition.interimResults = false;
-
     recognition.onstart = function() {
         isListening = true;
         const btn = document.getElementById('mic-btn');
@@ -344,7 +340,6 @@ function toggleMic() {
         btn.style.borderColor = 'var(--err)';
         btn.style.color = 'var(--err)';
     };
-
     recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
         const inp = document.getElementById('msg-input');
@@ -352,7 +347,6 @@ function toggleMic() {
         autoResize(inp);
         document.getElementById('send-btn').disabled = false;
     };
-
     recognition.onend = function() {
         isListening = false;
         const btn = document.getElementById('mic-btn');
@@ -360,7 +354,6 @@ function toggleMic() {
         btn.style.borderColor = '';
         btn.style.color = '';
     };
-
     recognition.onerror = function(e) {
         isListening = false;
         const btn = document.getElementById('mic-btn');
@@ -368,9 +361,9 @@ function toggleMic() {
         btn.style.borderColor = '';
         btn.style.color = '';
     };
-
     recognition.start();
-}// ── ÉMOJIS ──
+}
+
 function toggleEmoji() {
     const panel = document.getElementById('emoji-panel');
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
@@ -387,7 +380,6 @@ function insertEmoji(emoji) {
     document.getElementById('emoji-panel').style.display = 'none';
 }
 
-// Fermer le panneau si on clique ailleurs
 document.addEventListener('click', function(e) {
     const panel = document.getElementById('emoji-panel');
     const btn = document.getElementById('emoji-btn');
@@ -395,29 +387,23 @@ document.addEventListener('click', function(e) {
         panel.style.display = 'none';
     }
 });
- // ── LECTEUR MP3 ──
+
 function generateImageDirect() {
     const inp = document.getElementById('msg-input');
     const text = inp.value.trim();
-    if (!text) {
-        inp.placeholder = 'Décris l\'image que tu veux...';
-        inp.focus();
-        return;
-    }
+    if (!text) { inp.placeholder = 'Décris l\'image que tu veux...'; inp.focus(); return; }
     document.getElementById('welcome').style.display = 'none';
     const list = document.getElementById('messages-list');
     const userDiv = document.createElement('div');
     userDiv.className = 'msg msg-user';
     userDiv.innerHTML = `<div class="bubble">🎨 ${escHtml(text)}</div>`;
     list.appendChild(userDiv);
-
     const aiDiv = document.createElement('div');
     aiDiv.className = 'msg msg-ai';
     const imgId = 'img-' + Date.now();
     aiDiv.innerHTML = `<div class="ai-avatar">✦</div><div class="ai-body"><div class="ai-meta"><span class="ai-name">VoAnh</span></div><div class="ai-content" id="${imgId}"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;
     list.appendChild(aiDiv);
     scrollBottom();
-
     const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(text) + '?width=800&height=600&nologo=true&seed=' + Math.floor(Math.random()*10000);
     const imgEl = document.getElementById(imgId);
     const img = new Image();
@@ -429,38 +415,33 @@ function generateImageDirect() {
         imgEl.innerHTML = '<span style="color:var(--err)">⚠️ Impossible de générer l\'image. Réessaie !</span>';
     };
     img.src = url;
-
-    inp.value = '';
-    autoResize(inp);
+    inp.value = ''; autoResize(inp);
     document.getElementById('send-btn').disabled = true;
 }
 
 function downloadImage(url, filename) {
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.target = '_blank';
-    a.click();
-}    
+    a.href = url; a.download = filename; a.target = '_blank'; a.click();
+}
+
 function loadMp3(input) {
     const file = input.files[0];
     if (!file) return;
     const audio = document.getElementById('mp3-audio');
-    const title = document.getElementById('mp3-title');
     audio.src = URL.createObjectURL(file);
-    title.textContent = file.name;
+    document.getElementById('mp3-title').textContent = file.name;
     audio.play();
 }
 
 function loadMp3Url() {
-    const url = prompt('Colle l\'URL du fichier audio (mp3, ogg, wav, flux radio...) :');
+    const url = prompt('Colle l\'URL du fichier audio :');
     if (!url) return;
     const audio = document.getElementById('mp3-audio');
-    const title = document.getElementById('mp3-title');
     audio.src = url;
-    title.textContent = url.split('/').pop() || url;
+    document.getElementById('mp3-title').textContent = url.split('/').pop() || url;
     audio.play();
 }
+
 function toggleLight() {
     const body = document.body;
     const btn = document.getElementById('light-toggle');
@@ -493,13 +474,13 @@ function handleFileSelect(input) {
     reader.onload = e => { currentFile = {name:file.name, mime:file.type, base64:e.target.result.split(',')[1]}; };
     reader.readAsDataURL(file);
     document.getElementById('send-btn').disabled = false;
-    // Basculer automatiquement sur Vision si c'est une image
     if (file.type.startsWith('image/')) {
         const select = document.getElementById('model-select');
         const visionOption = select.querySelector('option[value="pixtral-large-2411"]');
         if (visionOption) select.value = 'pixtral-large-2411';
     }
 }
+
 function removeFile() {
     currentFile = null;
     document.getElementById('file-input').value = '';
@@ -542,11 +523,9 @@ function escHtml(s) {
 }
 
 function renderMarkdown(text) {
-    // Échapper d'abord
-    let out = text
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;');
+    let out = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Images markdown AVANT les autres remplacements
+    out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:10px;margin:10px 0;display:block">');
     // Blocs de code
     out = out.replace(/```[\w]*\n?([\s\S]*?)```/g, (_,code) => `<pre><code>${code.trim()}</code></pre>`);
     // Code inline
@@ -564,23 +543,6 @@ function renderMarkdown(text) {
     // Listes
     out = out.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
     out = out.replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`);
-    // Tableaux
-    const tableLines = out.split('\n');
-    let inTable = false; let tableHtml = ''; let newLines = [];
-    for (let i = 0; i < tableLines.length; i++) {
-        const line = tableLines[i];
-        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
-            if (line.replace(/[|\s\-]/g,'').length === 0) { tableHtml += ''; continue; }
-            const cells = line.split('|').filter((c,i,a) => i>0 && i<a.length-1);
-            const tag = (i>0 && tableLines[i-1] && tableLines[i-1].replace(/[|\s\-]/g,'').length===0) ? 'th' : 'td';
-            tableHtml += '<tr>' + cells.map(c=>'<'+tag+'>'+c.trim()+'</'+tag+'>').join('') + '</tr>';
-        } else {
-            if (inTable) { newLines.push(tableHtml + '</table>'); inTable = false; tableHtml = ''; }
-            newLines.push(line);
-        }
-    }
-    if (inTable) newLines.push(tableHtml + '</table>');
-    out = newLines.join('\n');
     // Sauts de ligne
     out = out.replace(/\n/g, '<br>');
     return out;
@@ -589,7 +551,7 @@ function renderMarkdown(text) {
 function renderContent(content) {
     if (content.startsWith('__IMAGE__')) {
         const url = content.replace('__IMAGE__','');
-        return `<img src="${escHtml(url)}" alt="Image générée" style="max-width:100%;border-radius:10px;margin:10px 0">`;
+        return `<img src="${escHtml(url)}" alt="Image générée" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"><br><button class="download-btn" onclick="downloadImage('${escHtml(url)}','image.jpg')">⬇️ Télécharger</button>`;
     }
     return renderMarkdown(content);
 }
@@ -615,14 +577,6 @@ function addAiMessage(model) {
     return id;
 }
 
-function copyMsg(btn) {
-    const text = btn.parentElement.querySelector('.ai-content').innerText;
-    navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = '✅ Copié !';
-        setTimeout(() => btn.textContent = '📋 Copier', 2000);
-    });
-}
-
 function scrollBottom() {
     const w = document.getElementById('messages-wrap');
     w.scrollTop = w.scrollHeight;
@@ -640,6 +594,25 @@ function newChat() {
     document.getElementById('msg-input').focus();
 }
 
+async function refreshConvList() {
+    try {
+        const r = await fetch('conversations.php?action=list');
+        const data = await r.json();
+        if (!data.conversations) return;
+        const list = document.getElementById('conv-list');
+        list.innerHTML = '<div class="conv-section-label">Récents</div>';
+        data.conversations.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'conv-item' + (c.id == currentConvId ? ' active' : '');
+            div.id = 'conv-' + c.id;
+            div.dataset.id = c.id;
+            div.onclick = () => loadConversation(c.id);
+            div.innerHTML = `<span class="conv-title">${escHtml(c.title || 'Conversation')}</span><button class="conv-del" onclick="event.stopPropagation();deleteConversation(${c.id})">×</button>`;
+            list.appendChild(div);
+        });
+    } catch(e) {}
+}
+
 async function loadConversation(id) {
     if (isBusy) return;
     currentConvId = id;
@@ -648,7 +621,7 @@ async function loadConversation(id) {
     document.getElementById('messages-list').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Chargement…</div>';
     if (window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
     try {
-       const r = await fetch('conversations.php?action=messages&id='+id);
+        const r = await fetch('conversations.php?action=messages&id='+id);
         const data = await r.json();
         const list = document.getElementById('messages-list');
         list.innerHTML = '';
@@ -681,7 +654,6 @@ async function deleteConversation(id) {
 }
 
 function addDownloadBtn(el, content) {
-    // Bouton copier
     const copyBtn = document.createElement('button');
     copyBtn.className = 'download-btn';
     copyBtn.style.background = 'rgba(124,106,245,.15)';
@@ -695,8 +667,6 @@ function addDownloadBtn(el, content) {
         });
     };
     el.appendChild(copyBtn);
-
-    // Bouton télécharger si HTML
     const match = content.match(/```html\n?([\s\S]*?)```/);
     if (match) {
         const dlBtn = document.createElement('button');
@@ -747,6 +717,10 @@ async function sendMessage() {
             currentConvId = data.conversation_id || currentConvId;
             aiEl.innerHTML = renderContent(data.content);
             addDownloadBtn(aiEl, data.content);
+            // Rafraîchir la sidebar si nouvelle conversation
+            if (!document.getElementById('conv-' + currentConvId)) {
+                await refreshConvList();
+            }
         } else {
             aiEl.innerHTML = `<span style="color:var(--err)">⚠️ ${escHtml(data.error||'Erreur')}</span>`;
         }
