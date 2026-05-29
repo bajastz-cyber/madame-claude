@@ -680,6 +680,27 @@ function addDownloadBtn(el, content) {
             a.click();
         };
         el.appendChild(dlBtn);
+        // Bouton vocal
+const speakBtn = document.createElement('button');
+speakBtn.className = 'download-btn';
+speakBtn.style.background = 'rgba(124,106,245,.15)';
+speakBtn.style.border = '1px solid rgba(124,106,245,.3)';
+speakBtn.style.color = 'var(--accent2)';
+speakBtn.innerHTML = '🔊 Écouter';
+speakBtn.onclick = () => {
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        speakBtn.innerHTML = '🔊 Écouter';
+        return;
+    }
+    const utt = new SpeechSynthesisUtterance(content.replace(/```[\s\S]*?```/g, 'bloc de code').replace(/[#*_`]/g, ''));
+    utt.lang = 'fr-FR';
+    utt.rate = 1;
+    speakBtn.innerHTML = '⏹️ Stop';
+    utt.onend = () => speakBtn.innerHTML = '🔊 Écouter';
+    window.speechSynthesis.speak(utt);
+};
+el.appendChild(speakBtn);
     }
 }
 
