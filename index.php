@@ -502,7 +502,16 @@ function renderMarkdown(text) {
 }
 
 function renderContent(content) {
+    if (content.startsWith('__IMAGE__')) {
+        const url = content.replace('__IMAGE__', '');
+        return `<img src="${escHtml(url)}" alt="Image générée" style="max-width:100%;border-radius:10px;margin:10px 0;display:block"><br><button class="action-btn action-btn-primary" onclick="downloadImage('${escHtml(url)}','image.jpg')">⬇️ Télécharger</button>`;
+    }
     return renderMarkdown(content);
+}
+
+function downloadImage(url, filename) {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.target = '_blank'; a.click();
 }
 
 function addUserMessage(text) {
