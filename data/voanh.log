@@ -1,0 +1,27 @@
+[2026-05-26 04:23:21] [INFO] New user registered: tonton (id=1)
+[2026-05-26 04:23:21] [INFO] User logged in: tonton
+[2026-05-26 04:25:19] [INFO] User logged in: tonton
+[2026-05-27 08:39:50] [INFO] User logged in: tonton
+[2026-05-27 19:02:13] [ERROR] Exception: Call to undefined method MistralClient::getKeys()
+[2026-05-27 19:33:18] [ERROR] Exception: syntax error, unexpected token "}"
+[2026-05-27 19:52:14] [ERROR] Exception: syntax error, unexpected token "}"
+[2026-05-27 22:55:01] [INFO] User logged in: tonton
+[2026-05-27 23:25:39] [WARNING] API key[0] error: cURL: Operation timed out after 60001 milliseconds with 0 bytes received
+[2026-05-27 23:26:39] [WARNING] API key[0] error: cURL: Operation timed out after 60001 milliseconds with 0 bytes received
+[2026-05-27 23:26:39] [WARNING] Chat error for user 1: Toutes les clés API ont échoué. Vérifiez vos clés Mistral.
+[2026-05-28 05:25:07] [INFO] User logged in: tonton
+[2026-05-28 05:45:38] [WARNING] API key[0] error: Service unavailable.
+[2026-05-28 15:19:39] [INFO] User logged in: tonton
+[2026-05-28 15:20:13] [INFO] User logged in: tonton
+[2026-05-29 10:24:06] [INFO] User logged in: tonton
+[2026-05-29 10:24:40] [WARNING] API key[0] error: HTTP 401
+[2026-05-29 10:24:40] [WARNING] API key[0] error: HTTP 401
+[2026-05-29 10:24:40] [WARNING] Chat error for user 1: Toutes les clés API ont échoué. Vérifiez vos clés Mistral.
+[2026-05-29 11:00:59] [ERROR] Chat exception: SQLSTATE[HY000]: General error: 1 table messages has no column named has_file
+[2026-05-29 11:07:38] [ERROR] Chat exception: SQLSTATE[HY000]: General error: 1 table messages has no column named has_file
+[2026-05-29 11:07:53] [ERROR] Chat exception: SQLSTATE[HY000]: General error: 1 table messages has no column named has_file
+[2026-05-29 11:29:39] [INFO] New user registered: tonton (id=1)
+[2026-05-29 11:29:39] [INFO] User logged in: tonton
+[2026-05-29 11:31:09] [INFO] User logged in: tonton
+[2026-05-29 15:20:55] [INFO] User logged in: tonton
+[2026-05-29 17:13:01] [INFO] User logged in: tonton

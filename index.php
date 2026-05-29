@@ -107,6 +107,9 @@ body.theme-orange{--accent:#f97316;--accent2:#fb923c;--accent3:#fdba74}
 .ai-content h1,.ai-content h2,.ai-content h3{margin:16px 0 8px;font-weight:600}
 .ai-content h1{font-size:20px}.ai-content h2{font-size:17px}.ai-content h3{font-size:15px}
 .ai-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:12px 0;color:var(--muted2);font-style:italic}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--border2);border:none;color:var(--muted2);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;opacity:0;transition:opacity .2s}
+.msg-ai:hover .copy-btn{opacity:1}
+.copy-btn:hover{background:var(--accent);color:#fff}
 .ai-content strong{color:var(--accent3);font-weight:500}
 .ai-content table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px}
 .ai-content th{background:var(--surface);padding:8px 12px;border:1px solid var(--border2);text-align:left;font-weight:500;color:var(--accent3)}
@@ -552,6 +555,7 @@ function renderMarkdown(text) {
     out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     // Titres
+    out = out.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
     out = out.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     out = out.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     out = out.replace(/^# (.+)$/gm, '<h1>$1</h1>');
@@ -560,6 +564,23 @@ function renderMarkdown(text) {
     // Listes
     out = out.replace(/^[\*\-] (.+)$/gm, '<li>$1</li>');
     out = out.replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`);
+    // Tableaux
+    const tableLines = out.split('\n');
+    let inTable = false; let tableHtml = ''; let newLines = [];
+    for (let i = 0; i < tableLines.length; i++) {
+        const line = tableLines[i];
+        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+            if (line.replace(/[|\s\-]/g,'').length === 0) { tableHtml += ''; continue; }
+            const cells = line.split('|').filter((c,i,a) => i>0 && i<a.length-1);
+            const tag = (i>0 && tableLines[i-1] && tableLines[i-1].replace(/[|\s\-]/g,'').length===0) ? 'th' : 'td';
+            tableHtml += '<tr>' + cells.map(c=>'<'+tag+'>'+c.trim()+'</'+tag+'>').join('') + '</tr>';
+        } else {
+            if (inTable) { newLines.push(tableHtml + '</table>'); inTable = false; tableHtml = ''; }
+            newLines.push(line);
+        }
+    }
+    if (inTable) newLines.push(tableHtml + '</table>');
+    out = newLines.join('\n');
     // Sauts de ligne
     out = out.replace(/\n/g, '<br>');
     return out;
@@ -592,6 +613,14 @@ function addAiMessage(model) {
     list.appendChild(div);
     scrollBottom();
     return id;
+}
+
+function copyMsg(btn) {
+    const text = btn.parentElement.querySelector('.ai-content').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✅ Copié !';
+        setTimeout(() => btn.textContent = '📋 Copier', 2000);
+    });
 }
 
 function scrollBottom() {
