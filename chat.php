@@ -1,7 +1,10 @@
 <?php
 /**
- * VoAnh - API Chat complet avec recherche web Serper
+ * VoAnh - API Chat (Hostinger compatible)
+ * Endpoint : /chat.php (POST JSON)
+ * Corrigé : gestion historique + fichier joint + noms de colonnes alignés
  */
+
 require_once dirname(__FILE__) . '/config.php';
 require_once dirname(__FILE__) . '/database.php';
 require_once dirname(__FILE__) . '/auth.php';
@@ -10,6 +13,7 @@ require_once dirname(__FILE__) . '/mistral.php';
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
+// CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Methods: POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
@@ -22,246 +26,140 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$raw = file_get_contents('php://input');
-$input = json_decode($raw, true);
+$raw    = file_get_contents('php://input');
+$input  = json_decode($raw, true);
 
-$message    = trim($input['message'] ?? '');
-$model      = trim($input['model'] ?? MASTER_AGENT_MODEL);
-$convId     = isset($input['conversation_id']) ? (int)$input['conversation_id'] : null;
-$fileBase64 = $input['file_base64'] ?? null;
-$fileMime   = $input['file_mime']   ?? null;
-$fileName   = $input['file_name']   ?? null;
+$message     = trim($input['message']          ?? '');
+$model       = trim($input['model']            ?? MASTER_AGENT_MODEL);
+$convId      = isset($input['conversation_id']) ? (int)$input['conversation_id'] : null;
+$fileBase64  = $input['file_base64']           ?? null;
+$fileMime    = $input['file_mime']             ?? null;
+$fileName    = $input['file_name']             ?? null;
 
 if ($message === '' && !$fileBase64) {
     echo json_encode(['success' => false, 'error' => 'Message vide']);
     exit;
 }
 
+// Valider le modèle
 $allModels = [];
 foreach (MISTRAL_MODELS as $cat) {
-    foreach ($cat as $m) $allModels[] = $m['id'];
-}
-if (!in_array($model, $allModels)) $model = MASTER_AGENT_MODEL;
-
-$visionModels  = ['pixtral-large-2411', 'pixtral-12b-2409'];
-$isVisionModel = in_array($model, $visionModels);
-
-function isImageRequest($message) {
-    $keywords = [
-        'génère une image', 'générer une image', 'crée une image', 'créer une image',
-        'génère moi une image', 'fais moi une image', 'dessine', 'génère un dessin',
-        'génère une photo', 'crée une photo', 'image de', 'photo de',
-        'montre moi', 'génère moi', 'fais moi voir', 'une image',
-    ];
-    $msg = mb_strtolower($message);
-    foreach ($keywords as $kw) {
-        if (strpos($msg, $kw) !== false) return true;
+    foreach ($cat as $m) {
+        $allModels[] = $m['id'];
     }
-    return false;
 }
-
-function needsWebSearch($message) {
-    $keywords = [
-        'actualité', 'aujourd\'hui', 'maintenant', 'récent', 'dernier',
-        'prix', 'météo', 'résultat', 'match', 'score', 'élection',
-        'qui est', 'c\'est quoi', 'quand', 'où', '2025', '2026',
-        'news', 'info', 'dernières nouvelles',
-    ];
-    $msg = mb_strtolower($message);
-    foreach ($keywords as $kw) {
-        if (strpos($msg, $kw) !== false) return true;
-    }
-    return false;
-}
-
-function searchWebSerper($query) {
-    $ch = curl_init('https://google.serper.dev/search');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_HTTPHEADER     => [
-            'X-API-KEY: 19b25786089632f79ebaa25225fbddc89a462e3c',
-            'Content-Type: application/json',
-        ],
-        CURLOPT_POSTFIELDS => json_encode([
-            'q'   => $query,
-            'gl'  => 'fr',
-            'hl'  => 'fr',
-            'num' => 5,
-        ]),
-        CURLOPT_TIMEOUT => 8,
-    ]);
-    $response = curl_exec($ch);
-    curl_close($ch);
-    if (!$response) return '';
-    $data = json_decode($response, true);
-    if (!$data) return '';
-    $results = [];
-    if (!empty($data['answerBox']['answer'])) {
-        $results[] = $data['answerBox']['answer'];
-    }
-    if (!empty($data['organic'])) {
-        foreach (array_slice($data['organic'], 0, 3) as $r) {
-            if (!empty($r['snippet'])) {
-                $results[] = $r['title'] . ' : ' . $r['snippet'];
-            }
-        }
-    }
-    return implode("\n", $results);
-}
-
-function getUserMemory($db, $userId) {
-    if (!$userId) return '';
-    $memories = $db->fetchAll(
-        "SELECT memory_key, memory_value FROM user_memory WHERE user_id = ? ORDER BY updated_at DESC",
-        [$userId]
-    );
-    if (!$memories) return '';
-    $lines = [];
-    foreach ($memories as $m) $lines[] = '- ' . $m['memory_key'] . ' : ' . $m['memory_value'];
-    return implode("\n", $lines);
-}
-
-function extractAndSaveMemory($db, $userId, $message) {
-    if (!$userId) return;
-    $patterns = [
-        '/je m\'appelle ([A-Za-zÀ-ÿ\s]+)/i'     => 'prénom',
-        '/mon prénom est ([A-Za-zÀ-ÿ\s]+)/i'     => 'prénom',
-        '/j\'habite à ([A-Za-zÀ-ÿ\s\-]+)/i'      => 'ville',
-        '/je suis ([A-Za-zÀ-ÿ\s]+) de métier/i'  => 'métier',
-        '/je travaille comme ([A-Za-zÀ-ÿ\s]+)/i' => 'métier',
-        '/j\'aime ([A-Za-zÀ-ÿ\s]+)/i'            => 'intérêt',
-        '/je parle ([A-Za-zÀ-ÿ\s]+)/i'           => 'langue',
-    ];
-    foreach ($patterns as $pattern => $key) {
-        if (preg_match($pattern, $message, $matches)) {
-            $value = trim($matches[1]);
-            if (strlen($value) > 1 && strlen($value) < 100) {
-                $existing = $db->fetch(
-                    "SELECT id FROM user_memory WHERE user_id = ? AND memory_key = ?",
-                    [$userId, $key]
-                );
-                if ($existing) {
-                    $db->query(
-                        "UPDATE user_memory SET memory_value = ?, updated_at = datetime('now') WHERE user_id = ? AND memory_key = ?",
-                        [$value, $userId, $key]
-                    );
-                } else {
-                    $db->query(
-                        "INSERT INTO user_memory (user_id, memory_key, memory_value) VALUES (?, ?, ?)",
-                        [$userId, $key, $value]
-                    );
-                }
-            }
-        }
-    }
+if (!in_array($model, $allModels)) {
+    $model = MASTER_AGENT_MODEL;
 }
 
 try {
     $auth   = new Auth();
     $user   = $auth->getCurrentUser();
     $userId = $user ? (int)$user['id'] : null;
-    $apiKey = $user ? ($user['mistral_api_key'] ?: null) : null;
+
+    // Clé API : priorité à la clé perso de l'utilisateur
+    $apiKey = ($user && !empty($user['mistral_api_key'])) ? $user['mistral_api_key'] : null;
 
     $db      = Database::getInstance();
     $mistral = getMistralClient($apiKey);
 
-    if (!$convId && $userId) {
-        $convId = $db->insert('conversations', [
-            'user_id'    => $userId,
-            'title'      => mb_substr($message ?: ($fileName ?? 'Image'), 0, 60),
-            'model_used' => $model,
-        ]);
-    } elseif ($convId && $userId) {
-        $conv = $db->fetch("SELECT id FROM conversations WHERE id = ? AND user_id = ?", [$convId, $userId]);
-        if (!$conv) $convId = null;
-    }
-
-    if ($convId) {
-        $db->insert('messages', [
-            'conversation_id' => $convId,
-            'role'       => 'user',
-            'content'    => $message,
-            'model_used' => $model,
-        ]);
-    }
-
-    // Génération d'image
-    if ($message && isImageRequest($message)) {
-        $prompt = urlencode($message);
-        $imageUrl = 'https://image.pollinations.ai/prompt/' . $prompt . '?width=800&height=600&nologo=true';
-        $reply = '__IMAGE__' . $imageUrl;
-        if ($convId) {
-            $db->insert('messages', [
-                'conversation_id' => $convId,
-                'role'        => 'assistant',
-                'content'     => $reply,
-                'model_used'  => $model,
-                'tokens_used' => 0,
+    // ----------------------------------------------------------------
+    // Créer ou vérifier la conversation (utilisateurs connectés seulement)
+    // ----------------------------------------------------------------
+    if ($userId) {
+        if (!$convId) {
+            // Nouvelle conversation
+            $convId = $db->insert('conversations', [
+                'user_id'   => $userId,
+                'title'     => mb_substr($message ?: $fileName ?: 'Nouvelle conversation', 0, 60),
+                'model_used' => $model,
             ]);
-            $db->update('conversations', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$convId]);
-        }
-        echo json_encode([
-            'success'         => true,
-            'content'         => $reply,
-            'model'           => $model,
-            'conversation_id' => $convId,
-        ]);
-        exit;
-    }
-
-    // Mémoire
-    $userMemory  = getUserMemory($db, $userId);
-    $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
-
-    // Recherche web
-    $webBlock = '';
-    if ($message && needsWebSearch($message)) {
-        $webResults = searchWebSerper($message);
-        if ($webResults) {
-            $webBlock = "\n\nRésultats de recherche web en temps réel :\n" . $webResults;
-        }
-    }
-
-    $apiMessages = [];
-    $apiMessages[] = [
-        'role'    => 'system',
-        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées du code HTML/CSS/JS, mets-le TOUJOURS dans un bloc ```html." . $memoryBlock . $webBlock,
-    ];
-
-    if ($convId) {
-        $history = $db->fetchAll(
-            "SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 20",
-            [$convId]
-        );
-        foreach (array_reverse($history) as $msg) {
-            if (in_array($msg['role'], ['user', 'assistant'])) {
-                $apiMessages[] = ['role' => $msg['role'], 'content' => $msg['content']];
+        } else {
+            // Vérifier que la conversation appartient bien à cet utilisateur
+            $conv = $db->fetch(
+                "SELECT id FROM conversations WHERE id = ? AND user_id = ?",
+                [$convId, $userId]
+            );
+            if (!$conv) {
+                $convId = null; // conversation invalide → on ignore
             }
         }
     }
 
-    if ($fileBase64 && strpos($fileMime, 'image/') === 0) {
-        if ($isVisionModel) {
-            $apiMessages[] = [
-                'role' => 'user',
-                'content' => [
-                    ['type' => 'text',      'text'      => $message ?: 'Analyse cette image.'],
-                    ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $fileMime . ';base64,' . $fileBase64]],
-                ],
-            ];
-        } else {
-            $apiMessages[] = [
-                'role'    => 'user',
-                'content' => ($message ?: 'Analyse cette image.') . "\n\n⚠️ Sélectionne Vision Analyzer Max ou Light pour analyser des images.",
-            ];
-        }
-    } elseif ($fileBase64 && $fileMime === 'application/pdf') {
-        $apiMessages[] = ['role' => 'user', 'content' => "Fichier PDF : $fileName\n\n" . $message];
-    } else {
-        $apiMessages[] = ['role' => 'user', 'content' => $message];
+    // ----------------------------------------------------------------
+    // Sauvegarder le message utilisateur
+    // ----------------------------------------------------------------
+    if ($convId) {
+        $db->insert('messages', [
+            'conversation_id' => $convId,
+            'role'            => 'user',
+            'content'         => $message ?: "[$fileName]",
+            'model_used'      => $model,
+            'has_file'        => $fileBase64 ? 1 : 0,
+        ]);
     }
 
+    // ----------------------------------------------------------------
+    // Construire les messages pour l'API Mistral
+    // ----------------------------------------------------------------
+    $apiMessages = [];
+
+    // Prompt système
+    $apiMessages[] = [
+        'role'    => 'system',
+        'content' => "Tu es VoAnh, un assistant IA avancé basé sur Mistral AI. Tu es intelligent, précis, créatif et bienveillant. Tu réponds toujours en français sauf si l'utilisateur parle une autre langue. Tu peux coder, analyser, créer et planifier des tâches complexes. Quand tu crées un site web ou un fichier HTML complet, mets TOUJOURS le code dans un bloc de code markdown avec ```html au début et ``` à la fin, afin que l'utilisateur puisse le télécharger facilement.",
+    ];
+
+    // Historique de la conversation (max 20 derniers messages, ordre chronologique)
+    if ($convId) {
+        $history = $db->fetchAll(
+            "SELECT role, content FROM messages
+             WHERE conversation_id = ?
+             ORDER BY created_at DESC
+             LIMIT 20",
+            [$convId]
+        );
+        $history = array_reverse($history); // Remettre dans l'ordre chronologique
+
+        // Ajouter l'historique SAUF le dernier message (le message actuel qu'on vient d'insérer)
+        $historyWithoutLast = array_slice($history, 0, count($history) - 1);
+        foreach ($historyWithoutLast as $msg) {
+            if (in_array($msg['role'], ['user', 'assistant'])) {
+                $apiMessages[] = [
+                    'role'    => $msg['role'],
+                    'content' => $msg['content'],
+                ];
+            }
+        }
+    }
+
+    // Message actuel (avec fichier si présent)
+    if ($fileBase64 && strpos($fileMime ?? '', 'image/') === 0) {
+        // Image → format multimodal
+        $apiMessages[] = [
+            'role'    => 'user',
+            'content' => [
+                ['type' => 'text',      'text'      => $message ?: 'Analyse cette image.'],
+                ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $fileMime . ';base64,' . $fileBase64]],
+            ],
+        ];
+    } elseif ($fileBase64 && $fileMime === 'application/pdf') {
+        // PDF → on ajoute le nom en contexte texte
+        $apiMessages[] = [
+            'role'    => 'user',
+            'content' => "Fichier PDF joint : $fileName\n\n$message",
+        ];
+    } else {
+        // Texte simple
+        $apiMessages[] = [
+            'role'    => 'user',
+            'content' => $message,
+        ];
+    }
+
+    // ----------------------------------------------------------------
+    // Appel Mistral
+    // ----------------------------------------------------------------
     $result = $mistral->chat($apiMessages, $model, [
         'temperature' => 0.7,
         'max_tokens'  => 4096,
@@ -269,17 +167,26 @@ try {
 
     if ($result['success']) {
         $reply = $result['content'];
-        if ($userId && $message) extractAndSaveMemory($db, $userId, $message);
+
+        // Sauvegarder la réponse
         if ($convId) {
             $db->insert('messages', [
                 'conversation_id' => $convId,
-                'role'        => 'assistant',
-                'content'     => $reply,
-                'model_used'  => $model,
-                'tokens_used' => $result['usage']['total_tokens'] ?? 0,
+                'role'            => 'assistant',
+                'content'         => $reply,
+                'model_used'      => $model,
+                'tokens_used'     => $result['usage']['total_tokens'] ?? 0,
             ]);
-            $db->update('conversations', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$convId]);
+
+            // Mettre à jour le timestamp de la conversation
+            $db->update(
+                'conversations',
+                ['updated_at' => date('Y-m-d H:i:s')],
+                'id = ?',
+                [$convId]
+            );
         }
+
         echo json_encode([
             'success'         => true,
             'content'         => $reply,
@@ -287,9 +194,13 @@ try {
             'conversation_id' => $convId,
             'usage'           => $result['usage'] ?? [],
         ]);
+
     } else {
         voanh_log("Chat error for user $userId: " . $result['error'], 2);
-        echo json_encode(['success' => false, 'error' => $result['error'] ?? "Erreur de l'API Mistral"]);
+        echo json_encode([
+            'success' => false,
+            'error'   => $result['error'] ?? "Erreur de l'API Mistral",
+        ]);
     }
 
 } catch (Exception $e) {
