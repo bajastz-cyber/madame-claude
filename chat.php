@@ -1,4 +1,6 @@
 <?php
+error_reporting(0); ini_set("display_errors", 0);
+error_reporting(0); ini_set("display_errors", 0);
 /**
  * MadameClaude - API Chat
  * Mistral AI + Recherche web Serper + Mémoire utilisateur + Vision + Images Pollinations
@@ -195,7 +197,7 @@ $userMemory  = getUserMemory($db, $userId);
 $memoryBlock = $userMemory ? "\n\nCe que tu sais sur cet utilisateur :\n" . $userMemory : '';
 
 $webBlock = '';
-if ($message && needsWebSearch($message)) {
+if ($message) {
     $webResults = searchWebSerper($message);
     if ($webResults) {
         $webBlock = "\n\nRésultats de recherche web en temps réel :\n" . $webResults;
